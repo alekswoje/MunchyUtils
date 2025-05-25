@@ -55,6 +55,15 @@ public class MunchyUtilsClient implements ClientModInitializer {
 		registerSneakTriggers();
 		initializeModFeatures();
 		munchyutils.client.InfoHudCommand.register();
+		// Register tick event for delayed config screen opening
+		net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(client -> {
+			if (munchyutils.client.InfoHudCommand.scheduledConfigScreenTicks >= 0) {
+				munchyutils.client.InfoHudCommand.scheduledConfigScreenTicks--;
+				if (munchyutils.client.InfoHudCommand.scheduledConfigScreenTicks == 0) {
+					munchyutils.client.InfoHudCommand.openConfigScreen();
+				}
+			}
+		});
 	}
 
 	private void registerKeyBindings() {

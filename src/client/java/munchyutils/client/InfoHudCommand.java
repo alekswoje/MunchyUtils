@@ -38,16 +38,23 @@ public class InfoHudCommand {
         }
         return builder.buildFuture();
     };
+    public static int scheduledConfigScreenTicks = -1;
+    public static void scheduleConfigScreenOpen() {
+        scheduledConfigScreenTicks = 5;
+    }
+    public static void openConfigScreen() {
+        MinecraftClient.getInstance().setScreen(munchyutils.client.MunchyConfigScreen.create(null));
+    }
     public static void register() {
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
             dispatcher.register(ClientCommandManager.literal("mu")
                 .then(ClientCommandManager.literal("config")
                     .executes(ctx -> {
                         try {
-                            MinecraftClient.getInstance().player.sendMessage(Text.literal("[MunchyUtils] Attempting to open test screen..."), false);
-                            MinecraftClient.getInstance().setScreen(new TestScreen());
+                            MinecraftClient.getInstance().player.sendMessage(Text.literal("[MunchyUtils] Opening config screen in a moment..."), false);
+                            scheduleConfigScreenOpen();
                         } catch (Exception e) {
-                            MinecraftClient.getInstance().player.sendMessage(Text.literal("[MunchyUtils] Error opening test screen: " + e), false);
+                            MinecraftClient.getInstance().player.sendMessage(Text.literal("[MunchyUtils] Error scheduling config screen: " + e), false);
                             e.printStackTrace();
                         }
                         return 1;
