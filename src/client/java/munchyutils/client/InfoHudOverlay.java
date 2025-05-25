@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import munchyutils.client.MunchyConfig;
+import net.minecraft.client.util.InputUtil;
+import org.lwjgl.glfw.GLFW;
 
 public class InfoHudOverlay extends BaseHudOverlay {
     public static final InfoHudSession session = new InfoHudSession();
@@ -30,6 +32,7 @@ public class InfoHudOverlay extends BaseHudOverlay {
     private static Map<String, String> categoryColorMap = new LinkedHashMap<>();
     private static int lastOverlayWidth = 120;
     private static int lastOverlayHeight = 48;
+    private static final int HANDLE_SIZE = 12;
     static {
         try {
             InputStreamReader reader = new InputStreamReader(InfoHudOverlay.class.getClassLoader().getResourceAsStream("fishing_rewards.json"));
@@ -47,8 +50,16 @@ public class InfoHudOverlay extends BaseHudOverlay {
         }
     }
 
+    // Drag/resize state for edit mode
+    private static boolean dragging = false;
+    private static boolean resizing = false;
+    private static double dragOffsetX = 0, dragOffsetY = 0;
+    private static double origScale = 1.0;
+    private static double origMouseX = 0, origMouseY = 0;
+
     public static void register() {
         HudRenderCallback.EVENT.register((DrawContext context, RenderTickCounter tickCounter) -> {
+            if (isEditScreenActive()) return; // Hide real HUD in edit mode
             MinecraftClient client = MinecraftClient.getInstance();
             if (client == null || client.options == null) return;
             MunchyConfig config = MunchyConfig.get();
@@ -65,6 +76,7 @@ public class InfoHudOverlay extends BaseHudOverlay {
             if (y == -1) y = 10;
             x = Math.max(0, Math.min(x, winW - overlayWidth));
             y = Math.max(0, Math.min(y, winH - overlayHeight));
+            
             // Tool detection logic FIRST
             boolean hasPickaxe = false, hasFishingRod = false;
             int pickaxeHotbarSlot = -1, fishingRodHotbarSlot = -1;
@@ -197,10 +209,6 @@ public class InfoHudOverlay extends BaseHudOverlay {
                     int w = textRenderer.getWidth(line) + 18;
                     if (w > maxTextWidth) maxTextWidth = w;
                 }
-                if (munchyutils.munchyutils.MunchyUtilsClient.isMoveMode && munchyutils.munchyutils.MunchyUtilsClient.movingHudStatic == munchyutils.client.FeatureManager.ModFeature.INFO_HUD) {
-                    x = munchyutils.munchyutils.MunchyUtilsClient.moveXStatic;
-                    y = munchyutils.munchyutils.MunchyUtilsClient.moveYStatic;
-                }
                 x = Math.round((float)x / 5) * 5;
                 y = Math.round((float)y / 5) * 5;
                 x = Math.max(4, Math.min(x, winW - overlayWidth - 4));
@@ -208,41 +216,6 @@ public class InfoHudOverlay extends BaseHudOverlay {
                 int iconRadius = 3;
                 int iconPadding = 4;
                 int textColor = 0xFFA0E0FF;
-                // Only draw background and border in move mode
-                boolean moveMode = munchyutils.munchyutils.MunchyUtilsClient.isMoveMode;
-                boolean isActive = moveMode && munchyutils.munchyutils.MunchyUtilsClient.movingHudStatic == munchyutils.client.FeatureManager.ModFeature.INFO_HUD;
-                if (moveMode) {
-                    int borderX = x - 6;
-                    int borderY = y - 6;
-                    int borderW = overlayWidth + 12;  // Added padding for resize handles
-                    int borderH = overlayHeight + 12;
-                    int bgTop = 0xAA44474A;
-                    int bgBottom = 0xAA232526;
-                    context.fillGradient(borderX, borderY, borderX + borderW, borderY + borderH, bgTop, bgBottom);
-                    int borderColor = isActive ? 0xFF00BFFF : 0xFF6C6F72;
-                    context.drawBorder(borderX, borderY, borderW, borderH, borderColor);
-                    
-                    // Add resize handles in corners
-                    int handleSize = 6;
-                    int handleColor = isActive ? 0xFF00BFFF : 0xFF6C6F72;
-                    
-                    // Top-left handle
-                    context.fill(borderX - 2, borderY - 2, borderX + handleSize, borderY + handleSize, handleColor);
-                    // Top-right handle
-                    context.fill(borderX + borderW - handleSize, borderY - 2, borderX + borderW + 2, borderY + handleSize, handleColor);
-                    // Bottom-left handle
-                    context.fill(borderX - 2, borderY + borderH - handleSize, borderX + handleSize, borderY + borderH + 2, handleColor);
-                    // Bottom-right handle
-                    context.fill(borderX + borderW - handleSize, borderY + borderH - handleSize, borderX + borderW + 2, borderY + borderH + 2, handleColor);
-                    
-                    // Add a clean, semi-transparent overlay if this HUD is being moved
-                    if (isActive) {
-                        int shadeColor = 0x4420A0FF; // subtle blue shade
-                        context.fill(borderX, borderY, borderX + borderW, borderY + borderH, shadeColor);
-                        context.drawText(textRenderer, "MOVING INFO HUD", x + overlayWidth / 2 - textRenderer.getWidth("MOVING INFO HUD") / 2, y - 18, 0xFFD700, false);
-                    }
-                    context.drawText(textRenderer, "MOVE MODE", borderX + 6, borderY + 2, 0x80FFFFFF, false);
-                }
                 for (int i = 0; i < numLines; i++) {
                     int lineY = y + 4 + i * 16;
                     int dotY = lineY + 4 - iconRadius;
@@ -262,11 +235,6 @@ public class InfoHudOverlay extends BaseHudOverlay {
             TextRenderer textRenderer = client.textRenderer;
             int[] movePos = MunchyUtilsClient.getMoveHudPosition(FeatureManager.ModFeature.INFO_HUD);
             int[] pos = (movePos != null) ? movePos : munchyutils.client.FeatureManager.getHudPosition(munchyutils.client.FeatureManager.ModFeature.INFO_HUD);
-            // If in move mode and this is the active HUD, use the current move position
-            if (munchyutils.munchyutils.MunchyUtilsClient.isMoveMode && munchyutils.munchyutils.MunchyUtilsClient.movingHudStatic == munchyutils.client.FeatureManager.ModFeature.INFO_HUD) {
-                x = munchyutils.munchyutils.MunchyUtilsClient.moveXStatic;
-                y = munchyutils.munchyutils.MunchyUtilsClient.moveYStatic;
-            }
             x = Math.round((float)x / 5) * 5;
             y = Math.round((float)y / 5) * 5;
             x = Math.max(4, Math.min(x, winW - overlayWidth - 4));
@@ -328,38 +296,18 @@ public class InfoHudOverlay extends BaseHudOverlay {
             int afkDotY = (int)(y + 8 * scale + 48 * scale - 3 * scale);
             context.fill(dotX, afkDotY, (int)(dotX + 6 * scale), (int)(afkDotY + 6 * scale), afkColor & 0xAAFFFFFF);
             context.drawText(textRenderer, afkLine, (int)(x + 6 * scale + 4 * scale), (int)(y + 4 * scale + 48 * scale), textColor, false);
-            // Draw ghosted border in move mode
-            boolean moveMode = munchyutils.munchyutils.MunchyUtilsClient.isMoveMode;
-            boolean isActive = moveMode && munchyutils.munchyutils.MunchyUtilsClient.movingHudStatic == munchyutils.client.FeatureManager.ModFeature.INFO_HUD;
-            if (moveMode) {
-                int borderX = (int)(x - 6 * scale);
-                int borderY = (int)(y - 6 * scale);
-                int borderW = (int)(overlayWidth + 12 * scale);
-                int borderH = (int)(overlayHeight + 12 * scale);
-                int bgTop = 0xAA44474A; // semi-transparent dark stone
-                int bgBottom = 0xAA232526; // semi-transparent even darker
-                context.fillGradient(borderX, borderY, borderX + borderW, borderY + borderH, bgTop, bgBottom);
-                int borderColor = isActive ? 0xFF00BFFF : 0xFF6C6F72;
-                context.drawBorder(borderX, borderY, borderW, borderH, borderColor);
-                // Add resize handles in corners
-                int handleSize = (int)(6 * scale);
-                int handleColor = isActive ? 0xFF00BFFF : 0xFF6C6F72;
-                // Top-left handle
-                context.fill(borderX - 2, borderY - 2, borderX + handleSize, borderY + handleSize, handleColor);
-                // Top-right handle
-                context.fill(borderX + borderW - handleSize, borderY - 2, borderX + borderW + 2, borderY + handleSize, handleColor);
-                // Bottom-left handle
-                context.fill(borderX - 2, borderY + borderH - handleSize, borderX + handleSize, borderY + borderH + 2, handleColor);
-                // Bottom-right handle
-                context.fill(borderX + borderW - handleSize, borderY + borderH - handleSize, borderX + borderW + 2, borderY + borderH + 2, handleColor);
-                // Add a clean, semi-transparent overlay if this HUD is being moved
-                if (isActive) {
-                    int shadeColor = 0x4420A0FF; // subtle blue shade
-                    context.fill(borderX, borderY, borderX + borderW, borderY + borderH, shadeColor);
-                    context.drawText(textRenderer, "MOVING INFO HUD", (int)(x + overlayWidth / 2 - textRenderer.getWidth("MOVING INFO HUD") / 2), (int)(y - 18 * scale), 0xFFD700, false);
-                }
-                context.drawText(textRenderer, "MOVE MODE", borderX + 6, borderY + 2, 0x80FFFFFF, false);
-            }
+            // After calculating overlayWidth/overlayHeight:
+            int[] posSize = getClampedPositionAndSize(x, y, overlayWidth, overlayHeight, winW, winH);
+            x = posSize[0];
+            y = posSize[1];
+            overlayWidth = posSize[2];
+            overlayHeight = posSize[3];
+            // Wrap all drawing code in context.getMatrices().push()/scale()/pop()
+            context.getMatrices().push();
+            context.getMatrices().translate(x, y, 0);
+            context.getMatrices().scale(scale, scale, 1.0f);
+            // ... draw overlay content here ...
+            context.getMatrices().pop();
         });
         // Listen for config changes and update overlay in real time
         MunchyConfig.get().setOnChange(cfg -> {
@@ -388,5 +336,158 @@ public class InfoHudOverlay extends BaseHudOverlay {
 
     public static Map<String, String> getCategoryColorMap() {
         return categoryColorMap;
+    }
+
+    // Render the Info HUD overlay for edit mode (from a Screen)
+    public static void renderForEdit(DrawContext context, int mouseX, int mouseY, boolean isSelected) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client == null || client.options == null) return;
+        MunchyConfig config = MunchyConfig.get();
+        float scale = Math.min(config.getInfoHudScale(), 2.0f);
+        int x = config.getInfoHudX();
+        int y = config.getInfoHudY();
+        Window window = client.getWindow();
+        int winW = window.getScaledWidth();
+        int winH = window.getScaledHeight();
+        // Example HUD: mimic the full-length fishing HUD
+        String[] lines = new String[] {
+            "Example HUD", // Title
+            "Rewards: 123 (456/h)",
+            "XP: 789 (1.2k/h)",
+            "Level: 42 (99.9%)",
+            "Session: 1h 23m 45s",
+            "XP to next: 1234",
+            "Time to next: 1.2h",
+            "Casts: 99",
+            "Active"
+        };
+        int[] dotColors = new int[] {
+            0xFF00BFFF, // blue for title
+            0xFF7ED957, // green for rewards
+            0xFF6EC6FF, // blue for xp
+            0xFFFFD966, // gold for level
+            0xFFB4B4B4, // gray for session
+            0xFF6EC6FF, // blue for xp to next
+            0xFFB4B4B4, // gray for time to next
+            0xFFB4B4B4, // gray for casts
+            0xFF7ED957  // green for active
+        };
+        int numLines = lines.length;
+        TextRenderer textRenderer = client.textRenderer;
+        int maxTextWidth = 0;
+        for (String line : lines) {
+            int w = textRenderer.getWidth(line) + 18;
+            if (w > maxTextWidth) maxTextWidth = w;
+        }
+        int overlayWidth = (int)((maxTextWidth + 12) * scale);
+        int overlayHeight = (int)((numLines * 16 + 12) * scale);
+        lastOverlayWidth = overlayWidth;
+        lastOverlayHeight = overlayHeight;
+        if (x == -1) x = 10;
+        if (y == -1) y = 10;
+        x = Math.max(0, Math.min(x, winW - overlayWidth));
+        y = Math.max(0, Math.min(y, winH - overlayHeight));
+        // --- EDIT MODE LOGIC ---
+        boolean editMode = isSelected;
+        double mouseXd = mouseX;
+        double mouseYd = mouseY;
+        boolean mouseDown = GLFW.glfwGetMouseButton(client.getWindow().getHandle(), GLFW.GLFW_MOUSE_BUTTON_1) == GLFW.GLFW_PRESS;
+        int handleSize = (int)(HANDLE_SIZE * scale);
+        int handleX0 = x + overlayWidth - handleSize;
+        int handleY0 = y + overlayHeight - handleSize;
+        int handleX1 = x + overlayWidth;
+        int handleY1 = y + overlayHeight;
+        boolean overHandle = mouseXd >= handleX0 && mouseXd <= handleX1 && mouseYd >= handleY0 && mouseYd <= handleY1;
+        boolean overHud = mouseXd >= x && mouseXd <= x + overlayWidth && mouseYd >= y && mouseYd <= y + overlayHeight;
+        if (editMode) {
+            if (mouseDown) {
+                if (!dragging && !resizing) {
+                    if (overHandle) {
+                        resizing = true;
+                        origScale = scale;
+                        origMouseX = mouseXd;
+                        origMouseY = mouseYd;
+                    } else if (overHud) {
+                        dragging = true;
+                        dragOffsetX = mouseXd - x;
+                        dragOffsetY = mouseYd - y;
+                    }
+                }
+            } else {
+                if (dragging || resizing) {
+                    MunchyConfig.get().save();
+                }
+                dragging = false;
+                resizing = false;
+            }
+            if (resizing) {
+                double dx = mouseXd - origMouseX;
+                double dy = mouseYd - origMouseY;
+                double d = Math.max(dx, dy);
+                float newScale = (float)Math.max(0.5, Math.min(origScale + d / 100.0, 2.0));
+                config.setInfoHudScale(newScale);
+                scale = newScale;
+                // Recalculate overlay size with new scale using existing variables
+                maxTextWidth = 0;
+                for (String line : lines) {
+                    int w = textRenderer.getWidth(line) + 18;
+                    if (w > maxTextWidth) maxTextWidth = w;
+                }
+                overlayWidth = (int)((maxTextWidth + 12) * scale);
+                overlayHeight = (int)((numLines * 16 + 12) * scale);
+                lastOverlayWidth = overlayWidth;
+                lastOverlayHeight = overlayHeight;
+            } else if (dragging) {
+                int newX = (int)(mouseXd - dragOffsetX);
+                int newY = (int)(mouseYd - dragOffsetY);
+                config.setInfoHudX(Math.max(0, Math.min(newX, winW - overlayWidth)));
+                config.setInfoHudY(Math.max(0, Math.min(newY, winH - overlayHeight)));
+            }
+        }
+        // Draw the example HUD
+        for (int i = 0; i < numLines; i++) {
+            int lineY = y + 4 + i * 16;
+            int dotY = lineY + 4 - 3;
+            int dotX = x;
+            context.fill(dotX, dotY, dotX + 6, dotY + 6, dotColors[i] & 0xAAFFFFFF);
+            int msgX = x + 6 + 4;
+            int color = (i == 0) ? 0xFF00BFFF : 0xFFE0E0E0;
+            context.drawText(textRenderer, lines[i], msgX, lineY, color, false);
+        }
+        int borderColor = isSelected ? 0xFF00BFFF : 0xFF888888;
+        context.drawBorder(x - 2, y - 2, overlayWidth + 4, overlayHeight + 4, borderColor);
+        int handleColor = isSelected ? 0xFF00BFFF : 0xFF888888;
+        // Draw a triangle handle in the bottom-right corner
+        int[] triX = {handleX1, handleX0, handleX1};
+        int[] triY = {handleY0, handleY1, handleY1};
+        context.fill(triX[0], triY[0], triX[1], triY[1], handleColor);
+        context.fill(triX[1], triY[1], triX[2], triY[2], handleColor);
+    }
+
+    public static boolean isMouseOver(double mouseX, double mouseY) {
+        MunchyConfig config = MunchyConfig.get();
+        float scale = config.getInfoHudScale();
+        int x = config.getInfoHudX();
+        int y = config.getInfoHudY();
+        int overlayWidth = (int)(lastOverlayWidth * scale);
+        int overlayHeight = (int)(lastOverlayHeight * scale);
+        if (x == -1) x = 10;
+        if (y == -1) y = 10;
+        return mouseX >= x && mouseX <= x + overlayWidth && mouseY >= y && mouseY <= y + overlayHeight;
+    }
+
+    public static boolean isEditScreenActive() {
+        return MinecraftClient.getInstance().currentScreen instanceof HudEditScreen;
+    }
+
+    // Helper to get clamped/scaled position and size
+    private static int[] getClampedPositionAndSize(int x, int y, int width, int height, int winW, int winH) {
+        x = Math.max(0, Math.min(x, winW - width));
+        y = Math.max(0, Math.min(y, winH - height));
+        x = Math.round((float)x / 5) * 5;
+        y = Math.round((float)y / 5) * 5;
+        x = Math.max(4, Math.min(x, winW - width - 4));
+        y = Math.max(4, Math.min(y, winH - height - 4));
+        return new int[]{x, y, width, height};
     }
 } 

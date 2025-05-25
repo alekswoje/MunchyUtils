@@ -33,13 +33,12 @@ import munchyutils.client.FishingHudSession;
 
 public class MunchyUtilsClient implements ClientModInitializer {
 	private KeyBinding moveHudKey;
-	private boolean moveMode = false;
-	private munchyutils.client.FeatureManager.ModFeature movingHud = munchyutils.client.FeatureManager.ModFeature.COOLDOWN_HUD;
+	// Only use the static fields below for edit mode state
 	private int moveX = 0, moveY = 0;
 	private int origX = 0, origY = 0;
 	private boolean tabPressed = false;
-	public static boolean isMoveMode = false;
-	public static munchyutils.client.FeatureManager.ModFeature movingHudStatic = munchyutils.client.FeatureManager.ModFeature.COOLDOWN_HUD;
+	public static boolean hudEditMode = false;
+	public static munchyutils.client.FeatureManager.ModFeature editingHudTypeStatic = munchyutils.client.FeatureManager.ModFeature.COOLDOWN_HUD;
 	public static int moveXStatic = 0, moveYStatic = 0;
 	private static Map<munchyutils.client.FeatureManager.ModFeature, int[]> tempHudPositions = new EnumMap<>(munchyutils.client.FeatureManager.ModFeature.class);
 	private static final int GRID_SIZE = 10;
@@ -268,9 +267,9 @@ public class MunchyUtilsClient implements ClientModInitializer {
 		return item == Items.WOODEN_PICKAXE || item == Items.STONE_PICKAXE || item == Items.IRON_PICKAXE || item == Items.GOLDEN_PICKAXE || item == Items.DIAMOND_PICKAXE || item == Items.NETHERITE_PICKAXE;
 	}
 
-	public static boolean isMoveMode() { return isMoveMode; }
+	public static boolean isHudEditMode() { return hudEditMode; }
 	public static int[] getMoveHudPosition(munchyutils.client.FeatureManager.ModFeature feature) {
-		if (isMoveMode) {
+		if (hudEditMode) {
 			int[] temp = tempHudPositions.get(feature);
 			if (temp != null && temp.length == 2) return new int[]{temp[0], temp[1]};
 			int[] saved = munchyutils.client.FeatureManager.getHudPosition(feature);

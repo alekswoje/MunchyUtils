@@ -7,9 +7,11 @@ import dev.isxander.yacl3.api.OptionDescription;
 import dev.isxander.yacl3.api.controller.IntegerSliderControllerBuilder;
 import dev.isxander.yacl3.api.controller.FloatSliderControllerBuilder;
 import dev.isxander.yacl3.api.controller.StringControllerBuilder;
+import dev.isxander.yacl3.api.ButtonOption;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.Text;
+import net.minecraft.client.gui.DrawContext;
 
 public class MunchyConfigScreen {
     public static Screen create(Screen parent) {
@@ -103,9 +105,42 @@ public class MunchyConfigScreen {
                 .build())
             .build();
 
+        // Edit HUD Layout button
+        ButtonOption editHudButton = ButtonOption.createBuilder()
+            .name(Text.literal("Edit HUD Layout"))
+            .description(OptionDescription.of(Text.literal("Drag and resize HUD overlays directly on your screen.")))
+            .action((screen) -> {
+                MinecraftClient.getInstance().setScreen(new HudEditScreen());
+            })
+            .build();
+
+        // Edit HUD Layout button
+        ButtonOption resetAllButton = ButtonOption.createBuilder()
+            .name(Text.literal("Reset All"))
+            .description(OptionDescription.of(Text.literal("Reset all HUD positions and scales to default.")))
+            .action(screen -> {
+                MinecraftClient.getInstance().setScreen(new ResetConfirmationScreen(screen, () -> {
+                    config.setInfoHudX(0);
+                    config.setInfoHudY(0);
+                    config.setInfoHudScale(1.0f);
+                    config.setCooldownHudX(0);
+                    config.setCooldownHudY(0);
+                    config.setCooldownHudScale(1.0f);
+                    config.save();
+                }));
+            })
+            .build();
+
+        ConfigCategory hudLayoutCategory = ConfigCategory.createBuilder()
+            .name(Text.literal("HUD Layout"))
+            .option(editHudButton)
+            .option(resetAllButton)
+            .build();
+
         // Build the config screen
         return YetAnotherConfigLib.createBuilder()
             .title(Text.literal("MunchyUtils HUD Config"))
+            .category(hudLayoutCategory)
             .category(infoHudCategory)
             .category(cooldownHudCategory)
             .category(triggersCategory)
@@ -113,5 +148,34 @@ public class MunchyConfigScreen {
             .category(miningHudCategory)
             .build()
             .generateScreen(parent);
+    }
+
+    // Confirmation dialog for reset
+    public static class ResetConfirmationScreen extends Screen {
+        private final Screen parent;
+        private final Runnable onConfirm;
+        public ResetConfirmationScreen(Screen parent, Runnable onConfirm) {
+            super(Text.literal("Confirm Reset"));
+            this.parent = parent;
+            this.onConfirm = onConfirm;
+        }
+        @Override
+        protected void init() {
+            int w = this.width / 2;
+            int h = this.height / 2;
+            this.addDrawableChild(net.minecraft.client.gui.widget.ButtonWidget.builder(Text.literal("Yes, reset all"), btn -> {
+                onConfirm.run();
+                this.client.setScreen(parent);
+            }).dimensions(w - 80, h, 160, 20).build());
+            this.addDrawableChild(net.minecraft.client.gui.widget.ButtonWidget.builder(Text.literal("Cancel"), btn -> {
+                this.client.setScreen(parent);
+            }).dimensions(w - 80, h + 24, 160, 20).build());
+        }
+        @Override
+        public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+            this.renderBackground(context, mouseX, mouseY, delta);
+            context.drawCenteredTextWithShadow(this.textRenderer, Text.literal("Are you sure you want to reset all HUD settings to default?"), this.width / 2, this.height / 2 - 40, 0xFFFFFF);
+            super.render(context, mouseX, mouseY, delta);
+        }
     }
 } 

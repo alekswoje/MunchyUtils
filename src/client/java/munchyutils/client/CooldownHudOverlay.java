@@ -8,15 +8,27 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.item.ItemStack;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.client.render.RenderTickCounter;
+import net.minecraft.client.util.InputUtil;
+import org.lwjgl.glfw.GLFW;
 
 public class CooldownHudOverlay extends BaseHudOverlay {
     private static int lastOverlayWidth = 120;
     private static int lastOverlayHeight = 48;
 
+    // Drag/resize state for edit mode
+    private static boolean dragging = false;
+    private static boolean resizing = false;
+    private static double dragOffsetX = 0, dragOffsetY = 0;
+    private static double origScale = 1.0;
+    private static double origMouseX = 0, origMouseY = 0;
+
+    private static final int HANDLE_SIZE = 12;
+
     public static void register() {
         HudRenderCallback.EVENT.register((DrawContext context, RenderTickCounter tickCounter) -> {
+            if (munchyutils.client.InfoHudOverlay.isEditScreenActive()) return; // Hide real HUD in edit mode
             MunchyConfig config = MunchyConfig.get();
-            float scale = config.getCooldownHudScale();
+            float scale = Math.min(config.getCooldownHudScale(), 2.0f);
             int x = config.getCooldownHudX();
             int y = config.getCooldownHudY();
             MinecraftClient client = MinecraftClient.getInstance();
@@ -36,11 +48,6 @@ public class CooldownHudOverlay extends BaseHudOverlay {
             // X/Y now represent the final on-screen position (after scaling)
             x = Math.max(0, Math.min(x, winW - overlayWidth));
             y = Math.max(0, Math.min(y, winH - overlayHeight));
-            // If in move mode and this is the active HUD, use the current move position
-            if (munchyutils.munchyutils.MunchyUtilsClient.isMoveMode && munchyutils.munchyutils.MunchyUtilsClient.movingHudStatic == munchyutils.client.FeatureManager.ModFeature.COOLDOWN_HUD) {
-                x = munchyutils.munchyutils.MunchyUtilsClient.moveXStatic;
-                y = munchyutils.munchyutils.MunchyUtilsClient.moveYStatic;
-            }
             // Snap to grid and clamp with margin
             x = Math.round((float)x / 5) * 5;  // Updated grid size
             y = Math.round((float)y / 5) * 5;  // Updated grid size
@@ -109,7 +116,13 @@ public class CooldownHudOverlay extends BaseHudOverlay {
             overlayHeight = (int)(numLines * lineHeight * scale + 12);
             lastOverlayWidth = overlayWidth;
             lastOverlayHeight = overlayHeight;
-            // Apply scaling to the entire overlay
+            // After calculating overlayWidth/overlayHeight:
+            int[] posSize = getClampedPositionAndSize(x, y, overlayWidth, overlayHeight, winW, winH);
+            x = posSize[0];
+            y = posSize[1];
+            overlayWidth = posSize[2];
+            overlayHeight = posSize[3];
+            // Wrap all drawing code in context.getMatrices().push()/scale()/pop()
             context.getMatrices().push();
             context.getMatrices().translate(x, y, 0);
             context.getMatrices().scale(scale, scale, 1.0f);
@@ -166,40 +179,64 @@ public class CooldownHudOverlay extends BaseHudOverlay {
                     context.drawText(textRenderer, " " + name, nameX, drawY + cooldownY, textColor, false);
                     cooldownY += lineHeight;
                 }
-                // Draw ghosted border in move mode
-                boolean moveMode = munchyutils.munchyutils.MunchyUtilsClient.isMoveMode;
-                boolean isActive = moveMode && munchyutils.munchyutils.MunchyUtilsClient.movingHudStatic == munchyutils.client.FeatureManager.ModFeature.COOLDOWN_HUD;
-                if (moveMode) {
-                    int borderX = drawX - 6;
-                    int borderY = drawY - 6;
-                    int borderW = overlayWidth + 12;  // Added padding for resize handles
-                    int borderH = overlayHeight + 12;
-                    int bgTop = 0xAA44474A; // semi-transparent dark stone
-                    int bgBottom = 0xAA232526; // semi-transparent even darker
-                    context.fillGradient(borderX, borderY, borderX + borderW, borderY + borderH, bgTop, bgBottom);
-                    int borderColor = isActive ? 0xFF00BFFF : 0xFF6C6F72;
-                    context.drawBorder(borderX, borderY, borderW, borderH, borderColor);
-                    
-                    // Add resize handles in corners
-                    int handleSize = 6;
-                    int handleColor = isActive ? 0xFF00BFFF : 0xFF6C6F72;
-                    
-                    // Top-left handle
-                    context.fill(borderX - 2, borderY - 2, borderX + handleSize, borderY + handleSize, handleColor);
-                    // Top-right handle
-                    context.fill(borderX + borderW - handleSize, borderY - 2, borderX + borderW + 2, borderY + handleSize, handleColor);
-                    // Bottom-left handle
-                    context.fill(borderX - 2, borderY + borderH - handleSize, borderX + handleSize, borderY + borderH + 2, handleColor);
-                    // Bottom-right handle
-                    context.fill(borderX + borderW - handleSize, borderY + borderH - handleSize, borderX + borderW + 2, borderY + borderH + 2, handleColor);
-                    
-                    // Add a clean, semi-transparent overlay if this HUD is being moved
-                    if (isActive) {
-                        int shadeColor = 0x4420A0FF; // subtle blue shade
-                        context.fill(borderX, borderY, borderX + borderW, borderY + borderH, shadeColor);
-                        context.drawText(textRenderer, "MOVING COOLDOWN HUD", drawX + overlayWidth / 2 - textRenderer.getWidth("MOVING COOLDOWN HUD") / 2, drawY - 18, 0x00BFFF, false);
+                // --- EDIT MODE LOGIC ---
+                boolean editMode = munchyutils.munchyutils.MunchyUtilsClient.hudEditMode &&
+                    munchyutils.munchyutils.MunchyUtilsClient.editingHudTypeStatic == munchyutils.client.FeatureManager.ModFeature.COOLDOWN_HUD;
+                // Mouse state
+                double mouseX = client.mouse.getX() / window.getScaleFactor();
+                double mouseY = client.mouse.getY() / window.getScaleFactor();
+                boolean mouseDown = GLFW.glfwGetMouseButton(client.getWindow().getHandle(), GLFW.GLFW_MOUSE_BUTTON_1) == GLFW.GLFW_PRESS;
+                // Calculate handle position/size using scale
+                int handleSize = (int)(HANDLE_SIZE * scale);
+                int handleX0 = x + overlayWidth - handleSize;
+                int handleY0 = y + overlayHeight - handleSize;
+                int handleX1 = x + overlayWidth;
+                int handleY1 = y + overlayHeight;
+                boolean overHandle = mouseX >= handleX0 && mouseX <= handleX1 && mouseY >= handleY0 && mouseY <= handleY1;
+                boolean overHud = mouseX >= x && mouseX <= x + overlayWidth && mouseY >= y && mouseY <= y + overlayHeight;
+                // Handle mouse events
+                if (editMode) {
+                    if (mouseDown) {
+                        if (!dragging && !resizing) {
+                            if (overHandle) {
+                                resizing = true;
+                                origScale = scale;
+                                origMouseX = mouseX;
+                                origMouseY = mouseY;
+                            } else if (overHud) {
+                                dragging = true;
+                                dragOffsetX = mouseX - x;
+                                dragOffsetY = mouseY - y;
+                            }
+                        }
+                    } else {
+                        if (dragging || resizing) {
+                            // Save config on mouse release
+                            MunchyConfig.get().save();
+                        }
+                        dragging = false;
+                        resizing = false;
                     }
-                    context.drawText(textRenderer, "MOVE MODE", borderX + 6, borderY + 2, 0x80FFFFFF, false);
+                    if (resizing) {
+                        double dx = mouseX - origMouseX;
+                        double dy = mouseY - origMouseY;
+                        double d = Math.max(dx, dy);
+                        float newScale = (float)Math.max(0.5, Math.min(origScale + d / 100.0, 2.0));
+                        config.setCooldownHudScale(newScale);
+                    } else if (dragging) {
+                        int newX = (int)(mouseX - dragOffsetX);
+                        int newY = (int)(mouseY - dragOffsetY);
+                        config.setCooldownHudX(Math.max(0, Math.min(newX, winW - overlayWidth)));
+                        config.setCooldownHudY(Math.max(0, Math.min(newY, winH - overlayHeight)));
+                    }
+                }
+                // Draw border and handle in edit mode
+                if (editMode) {
+                    int borderColor = 0xFF00BFFF;
+                    context.drawBorder(x - 2, y - 2, overlayWidth + 4, overlayHeight + 4, borderColor);
+                    // Draw resize handle (bottom-right corner)
+                    int handleColor = 0xFF00BFFF;
+                    context.fill(handleX0, handleY0, handleX1, handleY1, handleColor);
                 }
             } finally {
                 context.getMatrices().pop();
@@ -218,5 +255,143 @@ public class CooldownHudOverlay extends BaseHudOverlay {
     public static void setOverlaySize(int width, int height) {
         lastOverlayWidth = width;
         lastOverlayHeight = height;
+    }
+
+    // Render the Cooldown HUD overlay for edit mode (from a Screen)
+    public static void renderForEdit(DrawContext context, int mouseX, int mouseY, boolean isSelected) {
+        MunchyConfig config = MunchyConfig.get();
+        float scale = Math.min(config.getCooldownHudScale(), 2.0f);
+        int x = config.getCooldownHudX();
+        int y = config.getCooldownHudY();
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client == null || client.options == null) return;
+        Window window = client.getWindow();
+        TextRenderer textRenderer = client.textRenderer;
+        int winW = window.getScaledWidth();
+        int winH = window.getScaledHeight();
+        int lineHeight = 12;
+        // Always show 5 example cooldowns in edit mode
+        String[] names = {"Example 1", "Example 2", "Example 3", "Example 4", "Example 5"};
+        String[] timers = {"Ready", "2s", "5s", "10s", "30s"};
+        int[] colors = {0xFF8FCB9B, 0xFFF2C97D, 0xFFE57373, 0xFFF2C97D, 0xFFE57373};
+        int maxTextWidth = 0;
+        for (int i = 0; i < names.length; i++) {
+            String line = timers[i] + " " + names[i];
+            int width = textRenderer.getWidth(line) + 18;
+            if (width > maxTextWidth) maxTextWidth = width;
+        }
+        // Clamp and default position logic (match real HUD)
+        if (x == -1) x = 10;
+        if (y == -1) y = 10;
+        int overlayWidth = (int)(maxTextWidth * scale + 12);
+        int overlayHeight = (int)(names.length * lineHeight * scale + 12);
+        x = Math.max(0, Math.min(x, winW - overlayWidth));
+        y = Math.max(0, Math.min(y, winH - overlayHeight));
+        x = Math.round((float)x / 5) * 5;
+        y = Math.round((float)y / 5) * 5;
+        x = Math.max(4, Math.min(x, winW - overlayWidth - 4));
+        y = Math.max(4, Math.min(y, winH - overlayHeight - 4));
+        lastOverlayWidth = overlayWidth;
+        lastOverlayHeight = overlayHeight;
+        // --- EDIT MODE LOGIC ---
+        double mouseXd = mouseX;
+        double mouseYd = mouseY;
+        boolean mouseDown = GLFW.glfwGetMouseButton(client.getWindow().getHandle(), GLFW.GLFW_MOUSE_BUTTON_1) == GLFW.GLFW_PRESS;
+        int handleSize = (int)(HANDLE_SIZE * scale);
+        int handleX0 = x + overlayWidth - handleSize;
+        int handleY0 = y + overlayHeight - handleSize;
+        int handleX1 = x + overlayWidth;
+        int handleY1 = y + overlayHeight;
+        boolean overHandle = mouseXd >= handleX0 && mouseXd <= handleX1 && mouseYd >= handleY0 && mouseYd <= handleY1;
+        boolean overHud = mouseXd >= x && mouseXd <= x + overlayWidth && mouseYd >= y && mouseYd <= y + overlayHeight;
+        if (isSelected) {
+            if (mouseDown) {
+                if (!dragging && !resizing) {
+                    if (overHandle) {
+                        resizing = true;
+                        origScale = scale;
+                        origMouseX = mouseXd;
+                        origMouseY = mouseYd;
+                    } else if (overHud) {
+                        dragging = true;
+                        dragOffsetX = mouseXd - x;
+                        dragOffsetY = mouseYd - y;
+                    }
+                }
+            } else {
+                if (dragging || resizing) {
+                    MunchyConfig.get().save();
+                }
+                dragging = false;
+                resizing = false;
+            }
+            if (resizing) {
+                double dx = mouseXd - origMouseX;
+                double dy = mouseYd - origMouseY;
+                double d = Math.max(dx, dy);
+                float newScale = (float)Math.max(0.5, Math.min(origScale + d / 100.0, 2.0));
+                config.setCooldownHudScale(newScale);
+            } else if (dragging) {
+                int newX = (int)(mouseXd - dragOffsetX);
+                int newY = (int)(mouseYd - dragOffsetY);
+                config.setCooldownHudX(Math.max(0, Math.min(newX, winW - overlayWidth)));
+                config.setCooldownHudY(Math.max(0, Math.min(newY, winH - overlayHeight)));
+            }
+        }
+        // Draw the example cooldown HUD
+        context.getMatrices().push();
+        context.getMatrices().translate(x, y, 0);
+        context.getMatrices().scale(scale, scale, 1.0f);
+        try {
+            int drawX = 0;
+            int drawY = 0;
+            int cooldownY = 0;
+            for (int i = 0; i < names.length; i++) {
+                String displayLine = timers[i];
+                String name = names[i];
+                int color = colors[i];
+                int fontHeight = textRenderer.fontHeight;
+                int dotY = drawY + cooldownY + (fontHeight - 6) / 2;
+                int dotX = drawX + 6;
+                context.fill(dotX, dotY, dotX + 6, dotY + 6, color & 0xAAFFFFFF);
+                int timerWidth = textRenderer.getWidth(displayLine);
+                int nameX = drawX + 6 + 4 + timerWidth + 4;
+                context.drawText(textRenderer, displayLine, drawX + 6 + 4, drawY + cooldownY, color, false);
+                context.drawText(textRenderer, " " + name, nameX, drawY + cooldownY, 0xFFE0E0E0, false);
+                cooldownY += lineHeight;
+            }
+        } finally {
+            context.getMatrices().pop();
+        }
+        int borderColor = isSelected ? 0xFF00BFFF : 0xFF888888;
+        context.drawBorder(x - 2, y - 2, overlayWidth + 4, overlayHeight + 4, borderColor);
+        int handleColor = isSelected ? 0xFF00BFFF : 0xFF888888;
+        int[] triX = {handleX1, handleX0, handleX1};
+        int[] triY = {handleY0, handleY1, handleY1};
+        context.fill(triX[0], triY[0], triX[1], triY[1], handleColor);
+        context.fill(triX[1], triY[1], triX[2], triY[2], handleColor);
+    }
+
+    public static boolean isMouseOver(double mouseX, double mouseY) {
+        MunchyConfig config = MunchyConfig.get();
+        float scale = Math.min(config.getCooldownHudScale(), 2.0f);
+        int x = config.getCooldownHudX();
+        int y = config.getCooldownHudY();
+        int overlayWidth = (int)(lastOverlayWidth * scale);
+        int overlayHeight = (int)(lastOverlayHeight * scale);
+        if (x == -1) x = 10;
+        if (y == -1) y = 10;
+        return mouseX >= x && mouseX <= x + overlayWidth && mouseY >= y && mouseY <= y + overlayHeight;
+    }
+
+    // Helper to get clamped/scaled position and size
+    private static int[] getClampedPositionAndSize(int x, int y, int width, int height, int winW, int winH) {
+        x = Math.max(0, Math.min(x, winW - width));
+        y = Math.max(0, Math.min(y, winH - height));
+        x = Math.round((float)x / 5) * 5;
+        y = Math.round((float)y / 5) * 5;
+        x = Math.max(4, Math.min(x, winW - width - 4));
+        y = Math.max(4, Math.min(y, winH - height - 4));
+        return new int[]{x, y, width, height};
     }
 } 
