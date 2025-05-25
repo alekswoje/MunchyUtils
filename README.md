@@ -6,16 +6,13 @@ Credits to WuKnows and the other amazing people who created [item-guide.com](htt
 
 A utility mod for MunchyMC that helps you track cooldowns, monitor how much you are making, and better special item hints than /thrift.
 
-## Cloth Config Dependency
+## Configuration GUI
 
-This mod requires [Cloth Config](https://modrinth.com/mod/cloth-config/versions?version=1.21.5&loader=fabric) for its configuration GUI.
+This mod uses [YetAnotherConfigLib (YACL)](https://modrinth.com/mod/yacl) for its configuration GUI.
 
-**You must install Cloth Config for the `/mu config` command and config screen to work!**
+**YACL is bundled with the mod—no extra installation is needed!**
 
-Download the correct version for your Minecraft and Fabric loader from:
-- [Cloth Config for 1.21.5 (Fabric) on Modrinth](https://modrinth.com/mod/cloth-config/versions?version=1.21.5&loader=fabric)
-
-Place the downloaded Cloth Config jar in your `mods` folder alongside this mod.
+Open the config screen with `/mu config` or from Mod Menu.
 
 ## Features
 

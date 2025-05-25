@@ -123,7 +123,7 @@ public class CooldownManager {
         if (triggers.isEmpty()) {
             // Try to load from resources
             try (InputStreamReader reader = new InputStreamReader(
-                    CooldownManager.class.getClassLoader().getResourceAsStream("client/resources/default_cooldown_triggers.json"),
+                    CooldownManager.class.getClassLoader().getResourceAsStream("default_cooldown_triggers.json"),
                     StandardCharsets.UTF_8)) {
                 if (reader != null) {
                     List<CooldownTrigger> defaults = GSON.fromJson(reader, new TypeToken<List<CooldownTrigger>>(){}.getType());

@@ -60,8 +60,11 @@ public class InfoHudOverlay extends BaseHudOverlay {
             int winH = window.getScaledHeight();
             int overlayWidth = (int)(lastOverlayWidth * scale);
             int overlayHeight = (int)(lastOverlayHeight * scale);
-            if (x < 0) x = winW - overlayWidth - 10;
-            if (y < 0) y = 60;
+            // Clamp and default position logic
+            if (x == -1) x = 10;
+            if (y == -1) y = 10;
+            x = Math.max(0, Math.min(x, winW - overlayWidth));
+            y = Math.max(0, Math.min(y, winH - overlayHeight));
             // Tool detection logic FIRST
             boolean hasPickaxe = false, hasFishingRod = false;
             int pickaxeHotbarSlot = -1, fishingRodHotbarSlot = -1;
@@ -94,7 +97,9 @@ public class InfoHudOverlay extends BaseHudOverlay {
             } else if (hasFishingRod) {
                 showFishing = true;
             }
-            if (!showMining && !showFishing) return;
+            if (!showMining && !showFishing) {
+                return;
+            }
             // If fishing is preferred, render only the fishing HUD (styled identically)
             if (showFishing) {
                 TextRenderer textRenderer = client.textRenderer;
