@@ -161,13 +161,14 @@ public class CooldownHudOverlay extends BaseHudOverlay {
                     String line = displayLine + " " + name;
                     // Draw subtle dot icon
                     int fontHeight = textRenderer.fontHeight;
-                    int dotY = drawY + cooldownY + (fontHeight - iconRadius * 2) / 2;
-                    int dotX = drawX + iconRadius * 2;
-                    context.fill(dotX, dotY, dotX + iconRadius * 2, dotY + iconRadius * 2, color & 0xAAFFFFFF); // semi-transparent
-                    // Draw text: timer part in color, rest in neutral
+                    int dotDiameter = 6;
+                    int dotX = drawX;
+                    int dotY = drawY + cooldownY + (fontHeight - dotDiameter) / 2;
+                    context.fill(dotX, dotY, dotX + dotDiameter, dotY + dotDiameter, color & 0xAAFFFFFF); // semi-transparent
+                    int textX = dotX + dotDiameter + 2;
                     int timerWidth = textRenderer.getWidth(displayLine);
-                    int nameX = drawX + iconRadius * 2 + iconPadding + timerWidth + 4;
-                    context.drawText(textRenderer, displayLine, drawX + iconRadius * 2 + iconPadding, drawY + cooldownY, color, false);
+                    int nameX = textX + timerWidth + 4;
+                    context.drawText(textRenderer, displayLine, textX, drawY + cooldownY, color, false);
                     context.drawText(textRenderer, " " + name, nameX, drawY + cooldownY, textColor, false);
                     cooldownY += lineHeight;
                 }
@@ -234,9 +235,6 @@ public class CooldownHudOverlay extends BaseHudOverlay {
             } finally {
                 context.getMatrices().pop();
             }
-            // DEBUG LOGGING
-            System.out.println("[CooldownHudOverlay] register: x=" + x + ", y=" + y + ", overlayWidth=" + overlayWidth + ", overlayHeight=" + overlayHeight);
-            System.out.println("[CooldownHudOverlay] register: configX=" + config.getCooldownHudX() + ", configY=" + config.getCooldownHudY());
         });
         // Listen for config changes and update overlay in real time
         MunchyConfig.get().setOnChange(cfg -> {
@@ -346,12 +344,14 @@ public class CooldownHudOverlay extends BaseHudOverlay {
                 String name = names[i];
                 int color = colors[i];
                 int fontHeight = textRenderer.fontHeight;
-                int dotY = drawY + cooldownY + (fontHeight - 6) / 2;
-                int dotX = drawX + 6;
-                context.fill(dotX, dotY, dotX + 6, dotY + 6, color & 0xAAFFFFFF);
+                int dotDiameter = 6;
+                int dotX = drawX;
+                int dotY = drawY + cooldownY + (fontHeight - dotDiameter) / 2;
+                context.fill(dotX, dotY, dotX + dotDiameter, dotY + dotDiameter, color & 0xAAFFFFFF); // semi-transparent
+                int textX = dotX + dotDiameter + 2;
                 int timerWidth = textRenderer.getWidth(displayLine);
-                int nameX = drawX + 6 + 4 + timerWidth + 4;
-                context.drawText(textRenderer, displayLine, drawX + 6 + 4, drawY + cooldownY, color, false);
+                int nameX = textX + timerWidth + 4;
+                context.drawText(textRenderer, displayLine, textX, drawY + cooldownY, color, false);
                 context.drawText(textRenderer, " " + name, nameX, drawY + cooldownY, 0xFFE0E0E0, false);
                 cooldownY += lineHeight;
             }
@@ -365,10 +365,6 @@ public class CooldownHudOverlay extends BaseHudOverlay {
         int[] triY = {handleY0, handleY1, handleY1};
         context.fill(triX[0], triY[0], triX[1], triY[1], handleColor);
         context.fill(triX[1], triY[1], triX[2], triY[2], handleColor);
-        // DEBUG LOGGING
-        System.out.println("[CooldownHudOverlay] renderForEdit: x=" + x + ", y=" + y + ", overlayWidth=" + overlayWidth + ", overlayHeight=" + overlayHeight);
-        System.out.println("[CooldownHudOverlay] renderForEdit: configX=" + config.getCooldownHudX() + ", configY=" + config.getCooldownHudY());
-        System.out.println("[CooldownHudOverlay] renderForEdit: mouseXd=" + mouseXd + ", mouseYd=" + mouseYd + ", dragOffsetX=" + dragOffsetX + ", dragOffsetY=" + dragOffsetY);
     }
 
     public static boolean isMouseOver(double mouseX, double mouseY) {
