@@ -1,0 +1,11 @@
+{
+	"required": true,
+	"package": "munchyutils.munchyutils.mixin.client",
+	"compatibilityLevel": "JAVA_21",
+	"client": [
+		"ChatHudMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

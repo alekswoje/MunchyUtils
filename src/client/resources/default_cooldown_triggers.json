@@ -1,0 +1,51 @@
+[
+  {
+    "name": "Dooku Pickaxe",
+    "type": "HELD",
+    "action": "RCLICK",
+    "itemNamePart": "Count Dooku Pickaxe",
+    "cooldownMs": 1500000
+  },
+  {
+    "name": "Scrubee Head",
+    "type": "WORN",
+    "action": "CROUCH",
+    "itemNamePart": "Jedi Master Scrubee Head",
+    "cooldownMs": 4800000
+  },
+  {
+    "name": "Moloch's Scythe",
+    "type": "HELD",
+    "action": "RCLICK",
+    "itemNamePart": "Moloch's Scythe",
+    "cooldownMs": 7200000
+  },
+  {
+    "name": "Yoda's Pickaxe",
+    "type": "HELD",
+    "action": "RCLICK",
+    "itemNamePart": "YODA'S PICKAXE",
+    "cooldownMs": 1200000
+  },
+  {
+    "name": "Zadkiel's Sacred Pickaxe",
+    "type": "HELD",
+    "action": "BREAK",
+    "itemNamePart": "ZADKIEL'S SACRED PICKAXE",
+    "cooldownMs": 3600000
+  },
+  {
+    "name": "Luga's Net",
+    "type": "HELD",
+    "action": "CROUCH",
+    "itemNamePart": "Luga's Net",
+    "cooldownMs": 900000
+  },
+  {
+    "name": "Marie Curie's Brush",
+    "type": "HELD",
+    "action": "LCLICK",
+    "itemNamePart": "MARIE CURIE'S BRUSH",
+    "cooldownMs": 3600000
+  }
+] 

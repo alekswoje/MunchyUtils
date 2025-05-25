@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "munchyutils",
+  "version": "1.0.0",
+  "name": "Munchy Utils",
+  "description": "A utility mod for MunchyMC that helps you track cooldowns, monitor how much you are making, and better special item hints than /thrift.",
+  "authors": ["Aleks"],
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "client": [
+      "munchyutils.munchyutils.MunchyUtilsClient"
+    ]
+  },
+  "mixins": [
+    "munchyutils.client.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.14.0",
+    "minecraft": "1.21.x",
+    "fabric": "*"
+  }
+} 
