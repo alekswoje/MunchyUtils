@@ -54,6 +54,8 @@ public class MunchyUtilsClient implements ClientModInitializer {
 		registerSneakTriggers();
 		initializeModFeatures();
 		munchyutils.client.InfoHudCommand.register();
+		// Load fishing stats on startup
+		munchyutils.client.InfoHudOverlay.fishingSession.loadStats();
 		// Register tick event for delayed config screen opening
 		net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			if (munchyutils.client.InfoHudCommand.scheduledConfigScreenTicks >= 0) {
@@ -62,6 +64,8 @@ public class MunchyUtilsClient implements ClientModInitializer {
 					munchyutils.client.InfoHudCommand.openConfigScreen();
 				}
 			}
+			// Tick fishing HUD session timeout
+			munchyutils.client.InfoHudOverlay.fishingSession.tickTimeout();
 		});
 	}
 
@@ -372,9 +376,7 @@ public class MunchyUtilsClient implements ClientModInitializer {
 			// Now, if the name matches the local player, update session
 			String localName = getLocalPlayerName();
 			if (localName != null && localName.equalsIgnoreCase(lastStatsName)) {
-				munchyutils.client.InfoHudOverlay.fishingSession.playerLevel = lastStatsLevel;
-				munchyutils.client.InfoHudOverlay.fishingSession.playerXP = lastStatsXP;
-				munchyutils.client.InfoHudOverlay.fishingSession.saveStatsToFile(localName, lastStatsLevel, lastStatsXP);
+				munchyutils.client.InfoHudOverlay.fishingSession.setLevelAndXP(lastStatsLevel, lastStatsXP);
 				// Send colored chat message
 				net.minecraft.text.Text chatMsg = net.minecraft.text.Text.literal("")
 					.append(net.minecraft.text.Text.literal("[munchyutils] ").styled(s -> s.withColor(0x55FF55)))

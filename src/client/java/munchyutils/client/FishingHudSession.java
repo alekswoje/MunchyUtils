@@ -26,7 +26,8 @@ public class FishingHudSession extends HudSessionBase {
     private String playerName = null;
     private static final String STATS_FILE = "fishing_stats.json";
     private static final Gson GSON = new Gson();
-    private static List<Integer> xpTable = null;
+    private static Map<String, Integer> xpTable = null;
+    private long lastCatchTime = 0;
 
     public void reset() {
         startTime = 0;
@@ -43,6 +44,7 @@ public class FishingHudSession extends HudSessionBase {
             startTime = System.currentTimeMillis();
             isActive = true;
         }
+        lastCatchTime = System.currentTimeMillis();
         if (!lastRewardWasNewCast) {
             casts++;
             lastRewardWasNewCast = true;
@@ -71,6 +73,7 @@ public class FishingHudSession extends HudSessionBase {
             startTime = System.currentTimeMillis();
             isActive = true;
         }
+        lastCatchTime = System.currentTimeMillis();
         totalXP += xp;
         // If we have playerXP loaded, increment it and handle level up
         if (playerXP >= 0 && playerLevel >= 0) {
@@ -87,12 +90,14 @@ public class FishingHudSession extends HudSessionBase {
     public double getRewardsPerHour() {
         if (!isActive) return 0;
         long duration = getActiveSessionSeconds(startTime);
+        if (duration <= 0) return 0;
         return (totalRewards / (double)duration) * 3600;
     }
 
     public double getXPPerHour() {
         if (!isActive) return 0;
         long duration = getActiveSessionSeconds(startTime);
+        if (duration <= 0) return 0;
         return (totalXP / (double)duration) * 3600;
     }
 
@@ -122,22 +127,20 @@ public class FishingHudSession extends HudSessionBase {
     }
     public int getXPForLevel(int level) {
         if (xpTable == null) loadXPTable();
-        if (level < 0 || level >= xpTable.size()) return 0;
-        return xpTable.get(level);
+        return xpTable.getOrDefault(String.valueOf(level), 0);
     }
     public int getXPToNextLevel() {
         if (playerLevel < 0 || playerXP < 0) return -1;
         if (playerLevel >= 99) return 0;
-        return getXPForLevel(playerLevel + 1) - playerXP;
+        int xpToNext = getXPForLevel(playerLevel) - playerXP;
+        return Math.max(0, xpToNext);
     }
     public double getPercentToNextLevel() {
-        // playerXP is total XP, getXPForLevel(level) is cumulative XP required for that level
         if (playerLevel < 0 || playerXP < 0) return 0.0;
         if (playerLevel >= 99) return 100.0;
-        int cur = playerXP - getXPForLevel(playerLevel);
-        int req = getXPForLevel(playerLevel + 1) - getXPForLevel(playerLevel);
+        int req = getXPForLevel(playerLevel);
         if (req <= 0) return 100.0;
-        return Math.max(0, Math.min(100, (cur * 100.0) / req));
+        return Math.max(0, Math.min(100, (playerXP * 100.0) / req));
     }
     public double getTimeToNextLevelHours(double xpPerHour) {
         int toNext = getXPToNextLevel();
@@ -178,16 +181,10 @@ public class FishingHudSession extends HudSessionBase {
     private void loadXPTable() {
         try {
             InputStreamReader reader = new InputStreamReader(FishingHudSession.class.getClassLoader().getResourceAsStream("fishing_xp_table.json"));
-            List<Integer> perLevel = new Gson().fromJson(reader, new TypeToken<List<Integer>>(){}.getType());
+            xpTable = new Gson().fromJson(reader, new com.google.gson.reflect.TypeToken<Map<String, Integer>>(){}.getType());
             reader.close();
-            xpTable = new java.util.ArrayList<>(perLevel.size());
-            int sum = 0;
-            for (int xp : perLevel) {
-                sum += xp;
-                xpTable.add(sum);
-            }
         } catch (Exception e) {
-            xpTable = java.util.Collections.nCopies(100, 0);
+            xpTable = new java.util.HashMap<>();
         }
     }
     // Helper class for JSON
@@ -210,6 +207,21 @@ public class FishingHudSession extends HudSessionBase {
             writer.close();
         } catch (IOException e) {
             System.err.println("[FishingHudSession] Failed to save stats: " + e.getMessage());
+        }
+    }
+    public void tickTimeout() {
+        if (!isActive) return;
+        long now = System.currentTimeMillis();
+        if (now - lastCatchTime > 210_000) { // 3m 30s
+            // Reset session stats, but not playerLevel/playerXP
+            startTime = 0;
+            isActive = false;
+            totalRewards = 0;
+            totalXP = 0;
+            rewardCounts.clear();
+            categoryCounts.clear();
+            casts = 0;
+            lastRewardWasNewCast = false;
         }
     }
 } 
