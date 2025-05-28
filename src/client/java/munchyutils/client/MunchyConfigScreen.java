@@ -113,11 +113,18 @@ public class MunchyConfigScreen {
             .binding(config.isPreventPorgUseIfActive(), config::isPreventPorgUseIfActive, config::setPreventPorgUseIfActive)
             .controller(opt -> dev.isxander.yacl3.api.controller.BooleanControllerBuilder.create(opt))
             .build();
+        Option<Boolean> updateCheckEnabled = Option.createBuilder(Boolean.class)
+            .name(Text.literal("Enable Update Checker"))
+            .description(OptionDescription.of(Text.literal("Check for new MunchyUtils releases on GitHub and warn if out of date.")))
+            .binding(config.isUpdateCheckEnabled(), config::isUpdateCheckEnabled, config::setUpdateCheckEnabled)
+            .controller(opt -> dev.isxander.yacl3.api.controller.BooleanControllerBuilder.create(opt))
+            .build();
         ConfigCategory miningHudCategory = ConfigCategory.createBuilder()
             .name(Text.literal("MiningHud"))
             .option(hideInventoryFullMessage)
             .option(hideSellSuccessMessage)
             .option(preventPorgUseIfActive)
+            .option(updateCheckEnabled)
             .option(Option.createBuilder(String.class)
                 .name(Text.literal("MiningHud"))
                 .description(OptionDescription.of(Text.literal("Coming soon")))

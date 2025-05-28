@@ -26,6 +26,12 @@ import com.mojang.authlib.GameProfile;
 import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
 import munchyutils.client.HudInputHandler;
 import munchyutils.client.Utils;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.Scanner;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import java.io.InputStream;
 
 public class MunchyUtilsClient implements ClientModInitializer {
 	private KeyBinding moveHudKey;
@@ -55,6 +61,32 @@ public class MunchyUtilsClient implements ClientModInitializer {
 		munchyutils.client.InfoHudCommand.register();
 		// Load fishing stats on startup
 		munchyutils.client.InfoHudOverlay.fishingSession.loadStats();
+		// Update checker (runs once on startup)
+		if (MunchyConfig.get().isUpdateCheckEnabled()) {
+			new Thread(() -> {
+				try {
+					URL url = new URL("https://api.github.com/repos/alekswoje/MunchyUtils/releases/latest");
+					HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+					conn.setRequestMethod("GET");
+					conn.setRequestProperty("Accept", "application/vnd.github+json");
+					InputStream is = conn.getInputStream();
+					String json = new Scanner(is).useDelimiter("\\A").next();
+					JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
+					String latest = obj.get("tag_name").getAsString();
+					String current = getModVersion();
+					if (!latest.equals(current)) {
+						MinecraftClient.getInstance().execute(() -> {
+							MinecraftClient.getInstance().player.sendMessage(
+								net.minecraft.text.Text.literal("§6[MunchyUtils] §cA new version is available: " + latest + " (You have: " + current + ")"),
+								false
+							);
+						});
+					}
+				} catch (Exception e) {
+					// Optionally log or ignore
+				}
+			}, "MunchyUtils Update Checker").start();
+		}
 		// Register tick event for delayed config screen opening
 		net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			if (munchyutils.client.InfoHudCommand.scheduledConfigScreenTicks >= 0) {
@@ -443,5 +475,22 @@ public class MunchyUtilsClient implements ClientModInitializer {
 			return;
 		}
 		handleFishingChatMessage(message);
+	}
+
+	// Helper to get the current mod version from fabric.mod.json
+	private static String getModVersion() {
+		try {
+			InputStream is = MunchyUtilsClient.class.getClassLoader().getResourceAsStream("fabric.mod.json");
+			if (is != null) {
+				Scanner scanner = new Scanner(is).useDelimiter("\\A");
+				String json = scanner.hasNext() ? scanner.next() : "";
+				scanner.close();
+				JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
+				return obj.get("version").getAsString();
+			}
+		} catch (Exception e) {
+			// ignore
+		}
+		return "unknown";
 	}
 }

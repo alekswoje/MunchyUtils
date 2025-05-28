@@ -25,6 +25,7 @@ public class MunchyConfig {
     public boolean autoAnnounceEnabled = false;
     public boolean rotatingAnnouncementsEnabled = false;
     public java.util.List<String> announcementList = new java.util.ArrayList<>();
+    public boolean updateCheckEnabled = true;
 
     private transient Consumer<MunchyConfig> onChange;
 
@@ -96,4 +97,6 @@ public class MunchyConfig {
     public void setRotatingAnnouncementsEnabled(boolean v) { this.rotatingAnnouncementsEnabled = v; notifyChange(); save(); }
     public java.util.List<String> getAnnouncementList() { return announcementList; }
     public void setAnnouncementList(java.util.List<String> list) { this.announcementList = list; notifyChange(); save(); }
+    public boolean isUpdateCheckEnabled() { return updateCheckEnabled; }
+    public void setUpdateCheckEnabled(boolean v) { this.updateCheckEnabled = v; notifyChange(); save(); }
 } 
