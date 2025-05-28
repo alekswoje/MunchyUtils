@@ -247,10 +247,10 @@ public class MunchyUtilsClient implements ClientModInitializer {
 				munchyutils.client.InfoHudOverlay.session.setAfk(false);
 				munchyutils.client.InfoHudOverlay.fishingSession.setAfk(false);
 			}
-			if (!munchyutils.client.InfoHudOverlay.session.isAfk && now - lastInput[0] > 10_000) {
+			if (!munchyutils.client.InfoHudOverlay.session.isAfk && now - lastInput[0] > 60_000) {
 				munchyutils.client.InfoHudOverlay.session.setAfk(true);
 			}
-			if (!munchyutils.client.InfoHudOverlay.fishingSession.isAfk && now - lastInput[0] > 10_000) {
+			if (!munchyutils.client.InfoHudOverlay.fishingSession.isAfk && now - lastInput[0] > 60_000) {
 				munchyutils.client.InfoHudOverlay.fishingSession.setAfk(true);
 			}
 			if (munchyutils.client.InfoHudOverlay.session.isAfk) {

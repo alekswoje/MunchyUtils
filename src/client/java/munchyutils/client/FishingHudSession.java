@@ -223,7 +223,7 @@ public class FishingHudSession extends HudSessionBase {
     public void tickTimeout() {
         if (!isActive) return;
         long now = System.currentTimeMillis();
-        if (now - lastCatchTime > 60_000) { // 1 minute
+        if (now - lastCatchTime > 210_000) { // 3m 30s
             // Reset session stats, but not playerLevel/playerXP
             startTime = 0;
             isActive = false;

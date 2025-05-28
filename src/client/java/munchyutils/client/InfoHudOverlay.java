@@ -81,16 +81,17 @@ public class InfoHudOverlay extends BaseHudOverlay {
             // Tool detection logic FIRST
             boolean hasPickaxe = false, hasFishingRod = false;
             int pickaxeHotbarSlot = -1, fishingRodHotbarSlot = -1;
-            for (int i = 0; i < client.player.getInventory().size(); i++) {
+            // Only check hotbar slots 0-8
+            for (int i = 0; i < 9; i++) {
                 ItemStack stack = client.player.getInventory().getStack(i);
                 if (stack.isEmpty()) continue;
                 if (Utils.isPickaxe(stack)) {
                     hasPickaxe = true;
-                    if (i >= 0 && i < 9 && pickaxeHotbarSlot == -1) pickaxeHotbarSlot = i;
+                    if (pickaxeHotbarSlot == -1) pickaxeHotbarSlot = i;
                 }
                 if (stack.getItem() == Items.FISHING_ROD) {
                     hasFishingRod = true;
-                    if (i >= 0 && i < 9 && fishingRodHotbarSlot == -1) fishingRodHotbarSlot = i;
+                    if (fishingRodHotbarSlot == -1) fishingRodHotbarSlot = i;
                 }
             }
             boolean showMining = false, showFishing = false;
