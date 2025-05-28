@@ -1,6 +1,0 @@
-[09:40:00] [Render thread/INFO]: [System] [CHAT] FISHING ➱ HogMower leveled up to level 47
-[09:40:00] [Render thread/INFO]: [System] [CHAT] INFO ➲ Ranked up to level 47
-[09:40:00] [Render thread/INFO]: [System] [CHAT] INFO ➲ Earned $470000 from a level up
-[09:40:00] [Render thread/INFO]: [System] [CHAT] INFO ➲ Use /fish level to see your benefits
-[09:40:00] [Render thread/INFO]: [System] [CHAT] Double Reward!  Quickfish + Hastefish
-[09:40:00] [Render thread/INFO]: [System] [CHAT] Fishing EXP: +10XP  +150XP
