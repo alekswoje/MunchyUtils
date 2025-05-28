@@ -1,4 +1,4 @@
-package munchyutils.munchyutils.mixin.client;
+package munchyutils.mixins;
 
 import net.minecraft.client.gui.hud.ChatHud;
 import net.minecraft.text.Text;
@@ -16,6 +16,6 @@ public class ChatHudMixin {
         at = @At("HEAD")
     )
     private void munchyutils$onAddMessage(Text message, MessageSignatureData signatureData, MessageIndicator indicator, CallbackInfo ci) {
-        munchyutils.munchyutils.MunchyUtilsClient.handleFishingChatMessage(message);
+        munchyutils.client.MunchyUtilsClient.handleFishingChatMessage(message);
     }
 } 

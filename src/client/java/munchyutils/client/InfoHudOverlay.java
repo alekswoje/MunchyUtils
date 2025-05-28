@@ -10,7 +10,6 @@ import net.minecraft.client.gui.DrawContext;
 import net.minecraft.item.ItemStack;
 import net.minecraft.entity.EquipmentSlot;
 import munchyutils.client.FeatureManager;
-import munchyutils.munchyutils.MunchyUtilsClient;
 import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.item.Items;
 import com.google.gson.Gson;
@@ -24,6 +23,8 @@ import java.util.stream.Collectors;
 import munchyutils.client.MunchyConfig;
 import net.minecraft.client.util.InputUtil;
 import org.lwjgl.glfw.GLFW;
+import munchyutils.client.MunchyUtilsClient;
+import munchyutils.client.Utils;
 
 public class InfoHudOverlay extends BaseHudOverlay {
     public static final InfoHudSession session = new InfoHudSession();
@@ -83,7 +84,7 @@ public class InfoHudOverlay extends BaseHudOverlay {
             for (int i = 0; i < client.player.getInventory().size(); i++) {
                 ItemStack stack = client.player.getInventory().getStack(i);
                 if (stack.isEmpty()) continue;
-                if (isPickaxe(stack)) {
+                if (Utils.isPickaxe(stack)) {
                     hasPickaxe = true;
                     if (i >= 0 && i < 9 && pickaxeHotbarSlot == -1) pickaxeHotbarSlot = i;
                 }
@@ -132,7 +133,7 @@ public class InfoHudOverlay extends BaseHudOverlay {
                 // Build lines and colors
                 String[] lines;
                 int[] dotColors;
-                boolean statsLoaded = munchyutils.munchyutils.MunchyUtilsClient.isFishingStatsLoaded();
+                boolean statsLoaded = munchyutils.client.MunchyUtilsClient.isFishingStatsLoaded();
                 boolean statsOutOfSync = false;
                 if (statsLoaded) {
                     int sessionXP = fishingSession.totalXP;
@@ -148,7 +149,7 @@ public class InfoHudOverlay extends BaseHudOverlay {
                     String levelLine = String.format("Level: %d (%.1f%%)", fishingSession.playerLevel, fishingSession.getPercentToNextLevel());
                     String sessionTimeStr = String.format("Session: %s", fishingSession.getSessionLengthString().replace("Session: ", ""));
                     String xpToNext = String.format("XP to next: %d", fishingSession.getXPToNextLevel());
-                    String timeToNext = fishingSession.getTimeToNextLevelHours(fishingSession.getXPPerHour()) > 0 ? String.format("Time to next: %.1fh", fishingSession.getTimeToNextLevelHours(fishingSession.getXPPerHour())) : null;
+                    String timeToNext = fishingSession.getTimeToNextLevelString(fishingSession.getXPPerHour());
                     String castsLine = String.format("Casts: %d", fishingSession.getCasts());
                     String warnLine = null;
                     if (!statsLoaded) {
@@ -228,7 +229,7 @@ public class InfoHudOverlay extends BaseHudOverlay {
                 return;
             }
             // Only render mining HUD if showMining is true, session is active, and feature is enabled
-            if (!munchyutils.munchyutils.HudInputHandler.isMoveMode) {
+            if (!munchyutils.client.HudInputHandler.isMoveMode) {
                 if (!showMining || !FeatureManager.isEnabled(FeatureManager.ModFeature.INFO_HUD) || !session.isActive) return;
                 if (!FeatureManager.isEnabled(FeatureManager.ModFeature.INFO_HUD) || !session.isActive) return;
             }
@@ -251,7 +252,7 @@ public class InfoHudOverlay extends BaseHudOverlay {
             String incomeLine = "Income: " + session.getHourlyIncomeString();
             int incomeWidth = textRenderer.getWidth(incomeLine) + 18;
             if (incomeWidth > maxTextWidth) maxTextWidth = incomeWidth;
-            String totalLine = "Total: " + InfoHudSession.formatMoney(session.getTotalEarnings());
+            String totalLine = "Total: " + Utils.formatMoney(session.getTotalEarnings());
             int totalWidth = textRenderer.getWidth(totalLine) + 18;
             if (totalWidth > maxTextWidth) maxTextWidth = totalWidth;
             String sessionLine = session.getSessionLengthString();
@@ -297,7 +298,7 @@ public class InfoHudOverlay extends BaseHudOverlay {
             context.fill(dotX, afkDotY, (int)(dotX + 6 * scale), (int)(afkDotY + 6 * scale), afkColor & 0xAAFFFFFF);
             context.drawText(textRenderer, afkLine, (int)(x + 6 * scale + 4 * scale), (int)(y + 4 * scale + 48 * scale), textColor, false);
             // After calculating overlayWidth/overlayHeight:
-            int[] posSize = getClampedPositionAndSize(x, y, overlayWidth, overlayHeight, winW, winH);
+            int[] posSize = Utils.getClampedPositionAndSize(x, y, overlayWidth, overlayHeight, winW, winH);
             x = posSize[0];
             y = posSize[1];
             overlayWidth = posSize[2];

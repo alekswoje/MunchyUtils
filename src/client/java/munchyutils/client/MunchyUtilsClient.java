@@ -1,4 +1,4 @@
-package munchyutils.munchyutils;
+package munchyutils.client;
 
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
@@ -22,14 +22,9 @@ import java.util.Map;
 import java.util.Set;
 import com.mojang.authlib.GameProfile;
 
-import munchyutils.client.CooldownHudOverlay;
-import munchyutils.client.CooldownManager;
-import munchyutils.client.CooldownTrigger;
-import munchyutils.client.InfoHudOverlay;
-import munchyutils.client.ScoreboardReaderClient;
 import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
-import munchyutils.munchyutils.HudInputHandler;
-import munchyutils.client.FishingHudSession;
+import munchyutils.client.HudInputHandler;
+import munchyutils.client.Utils;
 
 public class MunchyUtilsClient implements ClientModInitializer {
 	private KeyBinding moveHudKey;
@@ -84,7 +79,7 @@ public class MunchyUtilsClient implements ClientModInitializer {
 			if (client.player == null) return;
 			if (GLFW.glfwGetMouseButton(client.getWindow().getHandle(), GLFW.GLFW_MOUSE_BUTTON_1) == GLFW.GLFW_PRESS) {
 				ItemStack mainHand = client.player.getMainHandStack();
-				String name = stripColorCodes(mainHand.getName().getString()).toLowerCase();
+				String name = Utils.stripColorCodes(mainHand.getName().getString()).toLowerCase();
 				for (CooldownTrigger trigger : CooldownManager.getTriggers()) {
 					if (trigger.type == CooldownTrigger.Type.HELD && trigger.action == CooldownTrigger.Action.LCLICK) {
 						if (name.contains(trigger.itemNamePart.toLowerCase())) {
@@ -104,7 +99,7 @@ public class MunchyUtilsClient implements ClientModInitializer {
 			if (!munchyutils.client.FeatureManager.isEnabled(munchyutils.client.FeatureManager.ModFeature.COOLDOWN_HUD)) return ActionResult.PASS;
 			if (player == null) return ActionResult.PASS;
 			ItemStack mainHand = player.getMainHandStack();
-			String name = stripColorCodes(mainHand.getName().getString()).toLowerCase();
+			String name = Utils.stripColorCodes(mainHand.getName().getString()).toLowerCase();
 			for (CooldownTrigger trigger : CooldownManager.getTriggers()) {
 				if (trigger.type == CooldownTrigger.Type.HELD && trigger.action == CooldownTrigger.Action.BREAK) {
 					if (name.contains(trigger.itemNamePart.toLowerCase())) {
@@ -126,7 +121,7 @@ public class MunchyUtilsClient implements ClientModInitializer {
 				for (CooldownTrigger trigger : CooldownManager.getTriggers()) {
 					if (trigger.type == CooldownTrigger.Type.WORN && trigger.action == CooldownTrigger.Action.CROUCH) {
 						ItemStack helmet = client.player.getEquippedStack(net.minecraft.entity.EquipmentSlot.HEAD);
-						if (helmet != null && stripColorCodes(helmet.getName().getString()).toLowerCase().contains(trigger.itemNamePart.toLowerCase())) {
+						if (helmet != null && Utils.stripColorCodes(helmet.getName().getString()).toLowerCase().contains(trigger.itemNamePart.toLowerCase())) {
 							if (client.player.isSneaking()) {
 								long remaining = CooldownManager.getRemaining(trigger.name);
 								if (remaining == 0) {
@@ -141,10 +136,10 @@ public class MunchyUtilsClient implements ClientModInitializer {
 						if (trigger.type == CooldownTrigger.Type.HELD && trigger.action == CooldownTrigger.Action.CROUCH) {
 							// Check main hand
 							ItemStack mainHand = client.player.getMainHandStack();
-							boolean match = !mainHand.isEmpty() && stripColorCodes(mainHand.getName().getString()).toLowerCase().contains(trigger.itemNamePart.toLowerCase());
+							boolean match = !mainHand.isEmpty() && Utils.stripColorCodes(mainHand.getName().getString()).toLowerCase().contains(trigger.itemNamePart.toLowerCase());
 							// Check offhand
 							ItemStack offHand = client.player.getOffHandStack();
-							match = match || (!offHand.isEmpty() && stripColorCodes(offHand.getName().getString()).toLowerCase().contains(trigger.itemNamePart.toLowerCase()));
+							match = match || (!offHand.isEmpty() && Utils.stripColorCodes(offHand.getName().getString()).toLowerCase().contains(trigger.itemNamePart.toLowerCase()));
 							if (match) {
 								long remaining = CooldownManager.getRemaining(trigger.name);
 								if (remaining == 0) {
@@ -167,7 +162,7 @@ public class MunchyUtilsClient implements ClientModInitializer {
 			if (!munchyutils.client.FeatureManager.isEnabled(munchyutils.client.FeatureManager.ModFeature.COOLDOWN_HUD)) return ActionResult.PASS;
 			if (world.isClient()) {
 				ItemStack stack = player.getStackInHand(hand);
-				String name = stripColorCodes(stack.getName().getString()).toLowerCase();
+				String name = Utils.stripColorCodes(stack.getName().getString()).toLowerCase();
 				for (CooldownTrigger trigger : CooldownManager.getTriggers()) {
 					if (trigger.type == CooldownTrigger.Type.HELD && trigger.action == CooldownTrigger.Action.RCLICK) {
 						if (name.contains(trigger.itemNamePart.toLowerCase())) {
@@ -188,7 +183,7 @@ public class MunchyUtilsClient implements ClientModInitializer {
 				for (CooldownTrigger trigger : CooldownManager.getTriggers()) {
 					if (trigger.type == CooldownTrigger.Type.WORN && trigger.action == CooldownTrigger.Action.CROUCH) {
 						ItemStack helmet = client.player.getEquippedStack(net.minecraft.entity.EquipmentSlot.HEAD);
-						if (helmet != null && stripColorCodes(helmet.getName().getString()).toLowerCase().contains(trigger.itemNamePart.toLowerCase())) {
+						if (helmet != null && Utils.stripColorCodes(helmet.getName().getString()).toLowerCase().contains(trigger.itemNamePart.toLowerCase())) {
 							if (client.player.isSneaking()) {
 								long remaining = CooldownManager.getRemaining(trigger.name);
 								if (remaining == 0) {
@@ -203,10 +198,10 @@ public class MunchyUtilsClient implements ClientModInitializer {
 						if (trigger.type == CooldownTrigger.Type.HELD && trigger.action == CooldownTrigger.Action.CROUCH) {
 							// Check main hand
 							ItemStack mainHand = client.player.getMainHandStack();
-							boolean match = !mainHand.isEmpty() && stripColorCodes(mainHand.getName().getString()).toLowerCase().contains(trigger.itemNamePart.toLowerCase());
+							boolean match = !mainHand.isEmpty() && Utils.stripColorCodes(mainHand.getName().getString()).toLowerCase().contains(trigger.itemNamePart.toLowerCase());
 							// Check offhand
 							ItemStack offHand = client.player.getOffHandStack();
-							match = match || (!offHand.isEmpty() && stripColorCodes(offHand.getName().getString()).toLowerCase().contains(trigger.itemNamePart.toLowerCase()));
+							match = match || (!offHand.isEmpty() && Utils.stripColorCodes(offHand.getName().getString()).toLowerCase().contains(trigger.itemNamePart.toLowerCase()));
 							if (match) {
 								long remaining = CooldownManager.getRemaining(trigger.name);
 								if (remaining == 0) {
@@ -267,10 +262,6 @@ public class MunchyUtilsClient implements ClientModInitializer {
 		});
 	}
 
-	private boolean isPickaxe(Item item) {
-		return item == Items.WOODEN_PICKAXE || item == Items.STONE_PICKAXE || item == Items.IRON_PICKAXE || item == Items.GOLDEN_PICKAXE || item == Items.DIAMOND_PICKAXE || item == Items.NETHERITE_PICKAXE;
-	}
-
 	public static boolean isHudEditMode() { return hudEditMode; }
 	public static int[] getMoveHudPosition(munchyutils.client.FeatureManager.ModFeature feature) {
 		if (hudEditMode) {
@@ -283,15 +274,10 @@ public class MunchyUtilsClient implements ClientModInitializer {
 		return null;
 	}
 
-	// Utility to strip Minecraft color codes from a string
-	private static String stripColorCodes(String input) {
-		return input.replaceAll("§.", "");
-	}
-
 	// Move the fishing HUD chat parsing logic into a new static method:
 	public static void handleFishingChatMessage(net.minecraft.text.Text message) {
 		String rawMsg = message.getString();
-		String msg = stripColorCodes(rawMsg);
+		String msg = Utils.stripColorCodes(rawMsg);
 		if (!munchyutils.client.FeatureManager.isEnabled(munchyutils.client.FeatureManager.ModFeature.INFO_HUD)) return;
 		// --- /fish stats parsing ---
 		// Example:

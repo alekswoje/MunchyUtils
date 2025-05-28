@@ -1,6 +1,6 @@
 {
 	"required": true,
-	"package": "munchyutils.munchyutils.mixin.client",
+	"package": "munchyutils.mixins",
 	"compatibilityLevel": "JAVA_21",
 	"client": [
 		"ChatHudMixin"

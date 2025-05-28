@@ -1,5 +1,7 @@
 package munchyutils.client;
 
+import munchyutils.client.Utils;
+
 public class InfoHudSession extends HudSessionBase {
     public long startTime = 0;
     public long lastChangeTime = 0;
@@ -56,7 +58,7 @@ public class InfoHudSession extends HudSessionBase {
         duration = Math.max(1, duration);
         double earnings = currentBalance - startBalance;
         double hourly = (earnings / duration) * 3600;
-        return formatMoney(hourly) + "/hr";
+        return Utils.formatMoney(hourly) + "/hr";
     }
 
     public String getSessionLengthString() {
@@ -77,12 +79,5 @@ public class InfoHudSession extends HudSessionBase {
     public double getTotalEarnings() {
         if (!isActive) return 0;
         return currentBalance - startBalance;
-    }
-
-    public static String formatMoney(double amount) {
-        if (amount >= 1_000_000_000) return String.format("$%.3fB", amount / 1_000_000_000);
-        if (amount >= 1_000_000) return String.format("$%.3fM", amount / 1_000_000);
-        if (amount >= 1_000) return String.format("$%.3fK", amount / 1_000);
-        return String.format("$%.3f", amount);
     }
 } 

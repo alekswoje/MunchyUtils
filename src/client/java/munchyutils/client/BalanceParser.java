@@ -1,5 +1,7 @@
 package munchyutils.client;
 
+import munchyutils.client.Utils;
+
 public class BalanceParser {
     public static double parseBalance(String balanceStr) {
         if (balanceStr == null) return 0.0;

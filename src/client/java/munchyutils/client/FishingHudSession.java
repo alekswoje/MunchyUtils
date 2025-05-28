@@ -147,6 +147,17 @@ public class FishingHudSession extends HudSessionBase {
         if (toNext <= 0 || xpPerHour <= 0) return -1;
         return toNext / xpPerHour;
     }
+    public String getTimeToNextLevelString(double xpPerHour) {
+        double hours = getTimeToNextLevelHours(xpPerHour);
+        if (hours < 0) return null;
+        int h = (int) hours;
+        int m = (int) Math.round((hours - h) * 60);
+        if (h > 0) {
+            return String.format("Time to next: %dh %dm", h, m);
+        } else {
+            return String.format("Time to next: %dm", m);
+        }
+    }
     public void saveStats() {
         try {
             File file = getStatsFile();
@@ -212,7 +223,7 @@ public class FishingHudSession extends HudSessionBase {
     public void tickTimeout() {
         if (!isActive) return;
         long now = System.currentTimeMillis();
-        if (now - lastCatchTime > 210_000) { // 3m 30s
+        if (now - lastCatchTime > 60_000) { // 1 minute
             // Reset session stats, but not playerLevel/playerXP
             startTime = 0;
             isActive = false;

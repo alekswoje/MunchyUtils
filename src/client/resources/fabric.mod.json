@@ -9,7 +9,7 @@
   "environment": "*",
   "entrypoints": {
     "client": [
-      "munchyutils.munchyutils.MunchyUtilsClient"
+      "munchyutils.client.MunchyUtilsClient"
     ]
   },
   "mixins": [

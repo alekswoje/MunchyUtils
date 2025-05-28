@@ -17,6 +17,7 @@ import java.io.InputStream;
 import java.lang.reflect.Type;
 import java.util.*;
 import java.util.stream.Collectors;
+import munchyutils.client.Utils;
 
 public class FreethriftCommand {
     private static final String JSON_RESOURCE = "/mu_freethrift_items.json";
@@ -53,20 +54,6 @@ public class FreethriftCommand {
         }
     }
 
-    private static String stripColorCodes(String input) {
-        // Use the same logic as MunchyUtilsClient
-        return input.replaceAll("§.", "");
-    }
-
-    private static String toSnakeCase(String input) {
-        // Remove apostrophes, then replace other non-alphanumerics with underscores
-        return input.replace("'", "")
-                    .trim()
-                    .toLowerCase()
-                    .replaceAll("[^a-z0-9]+", "_")
-                    .replaceAll("^_+|_+$", "");
-    }
-
     private static final SuggestionProvider<FabricClientCommandSource> ITEM_SUGGESTIONS = (context, builder) -> {
         loadItems();
         for (ItemInfo item : items) {
@@ -92,8 +79,8 @@ public class FreethriftCommand {
                                 ctx.getSource().sendFeedback(Text.literal("[munchyutils] You must hold an item or specify an item tag."));
                                 return 0;
                             }
-                            String displayName = stripColorCodes(held.getName().getString());
-                            String tag = toSnakeCase(displayName);
+                            String displayName = Utils.stripColorCodes(held.getName().getString());
+                            String tag = Utils.toSnakeCase(displayName);
                             ItemInfo item = tagToItem.get(tag);
                             if (item == null) {
                                 MutableText msg = buildNoInfoMessage(displayName, tag);

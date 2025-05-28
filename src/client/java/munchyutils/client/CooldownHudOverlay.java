@@ -10,6 +10,7 @@ import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.client.util.InputUtil;
 import org.lwjgl.glfw.GLFW;
 import net.minecraft.client.render.RenderTickCounter;
+import munchyutils.client.Utils;
 
 public class CooldownHudOverlay extends BaseHudOverlay {
     private static int lastOverlayWidth = 120;
@@ -34,15 +35,15 @@ public class CooldownHudOverlay extends BaseHudOverlay {
             if (client == null || client.options == null) return;
             Window window = client.getWindow();
             TextRenderer textRenderer = client.textRenderer;
-            int[] movePos = munchyutils.munchyutils.MunchyUtilsClient.getMoveHudPosition(munchyutils.client.FeatureManager.ModFeature.COOLDOWN_HUD);
+            int[] movePos = munchyutils.client.MunchyUtilsClient.getMoveHudPosition(munchyutils.client.FeatureManager.ModFeature.COOLDOWN_HUD);
             int[] pos = (movePos != null) ? movePos : munchyutils.client.FeatureManager.getHudPosition(munchyutils.client.FeatureManager.ModFeature.COOLDOWN_HUD);
             int winW = window.getScaledWidth();
             int winH = window.getScaledHeight();
             int overlayWidth = lastOverlayWidth;
             int overlayHeight = lastOverlayHeight;
             // Clamp and default position logic
-            if (x == -1) x = 10;
-            if (y == -1) y = 10;
+            if (x < 0) x = 10;
+            if (y < 0) y = 10;
             // X/Y now represent the final on-screen position (after scaling)
             x = Math.max(0, Math.min(x, winW - overlayWidth));
             y = Math.max(0, Math.min(y, winH - overlayHeight));
@@ -110,7 +111,7 @@ public class CooldownHudOverlay extends BaseHudOverlay {
             lastOverlayWidth = overlayWidth;
             lastOverlayHeight = overlayHeight;
             // After calculating overlayWidth/overlayHeight:
-            int[] posSize = getClampedPositionAndSize(x, y, overlayWidth, overlayHeight, winW, winH);
+            int[] posSize = Utils.getClampedPositionAndSize(x, y, overlayWidth, overlayHeight, winW, winH);
             x = posSize[0];
             y = posSize[1];
             overlayWidth = posSize[2];
@@ -173,8 +174,8 @@ public class CooldownHudOverlay extends BaseHudOverlay {
                     cooldownY += lineHeight;
                 }
                 // --- EDIT MODE LOGIC ---
-                boolean editMode = munchyutils.munchyutils.MunchyUtilsClient.hudEditMode &&
-                    munchyutils.munchyutils.MunchyUtilsClient.editingHudTypeStatic == munchyutils.client.FeatureManager.ModFeature.COOLDOWN_HUD;
+                boolean editMode = munchyutils.client.MunchyUtilsClient.hudEditMode &&
+                    munchyutils.client.MunchyUtilsClient.editingHudTypeStatic == munchyutils.client.FeatureManager.ModFeature.COOLDOWN_HUD;
                 // Mouse state
                 double mouseXd = client.mouse.getX() / window.getScaleFactor();
                 double mouseYd = client.mouse.getY() / window.getScaleFactor();
@@ -219,7 +220,7 @@ public class CooldownHudOverlay extends BaseHudOverlay {
                     } else if (dragging) {
                         int newX = (int)((mouseXd) - dragOffsetX);
                         int newY = (int)((mouseYd) - dragOffsetY);
-                        int[] draggedPos = getClampedPositionAndSize(newX, newY, overlayWidth, overlayHeight, winW, winH);
+                        int[] draggedPos = Utils.getClampedPositionAndSize(newX, newY, overlayWidth, overlayHeight, winW, winH);
                         config.setCooldownHudX(draggedPos[0]);
                         config.setCooldownHudY(draggedPos[1]);
                     }
@@ -327,7 +328,7 @@ public class CooldownHudOverlay extends BaseHudOverlay {
             } else if (dragging) {
                 int newX = (int)((mouseXd) - dragOffsetX);
                 int newY = (int)((mouseYd) - dragOffsetY);
-                int[] draggedPos = getClampedPositionAndSize(newX, newY, overlayWidth, overlayHeight, winW, winH);
+                int[] draggedPos = Utils.getClampedPositionAndSize(newX, newY, overlayWidth, overlayHeight, winW, winH);
                 config.setCooldownHudX(draggedPos[0]);
                 config.setCooldownHudY(draggedPos[1]);
             }
@@ -376,16 +377,5 @@ public class CooldownHudOverlay extends BaseHudOverlay {
         if (x == -1) x = 10;
         if (y == -1) y = 10;
         return mouseX >= x && mouseX <= x + overlayWidth && mouseY >= y && mouseY <= y + overlayHeight;
-    }
-
-    // Helper to get clamped/scaled position and size
-    private static int[] getClampedPositionAndSize(int x, int y, int width, int height, int winW, int winH) {
-        x = Math.max(0, Math.min(x, winW - width));
-        y = Math.max(0, Math.min(y, winH - height));
-        x = Math.round((float)x / 5) * 5;
-        y = Math.round((float)y / 5) * 5;
-        x = Math.max(4, Math.min(x, winW - width - 4));
-        y = Math.max(4, Math.min(y, winH - height - 4));
-        return new int[]{x, y, width, height};
     }
 } 

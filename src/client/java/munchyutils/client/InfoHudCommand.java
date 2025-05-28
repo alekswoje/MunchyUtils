@@ -18,6 +18,7 @@ import net.minecraft.client.MinecraftClient;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.DrawContext;
+import munchyutils.client.Utils;
 
 public class InfoHudCommand {
     private static final SuggestionProvider<net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource> TYPE_SUGGESTIONS = (context, builder) -> {
@@ -72,7 +73,7 @@ public class InfoHudCommand {
                         .executes(ctx -> {
                             var session = munchyutils.client.InfoHudOverlay.session;
                             String income = session.getHourlyIncomeString();
-                            String total = InfoHudSession.formatMoney(session.getTotalEarnings());
+                            String total = Utils.formatMoney(session.getTotalEarnings());
                             String sessionLength = session.getSessionLengthString().replace("Session: ", "");
                             String summary = String.format("[munchyutils] %s earned in %s (%s)", total, sessionLength, income);
                             net.minecraft.text.Text colorful = net.minecraft.text.Text.literal("")
@@ -96,7 +97,7 @@ public class InfoHudCommand {
                     .executes(ctx -> {
                         var session = munchyutils.client.InfoHudOverlay.session;
                         String income = session.getHourlyIncomeString();
-                        String total = InfoHudSession.formatMoney(session.getTotalEarnings());
+                        String total = Utils.formatMoney(session.getTotalEarnings());
                         String sessionLength = session.getSessionLengthString().replace("Session: ", "");
                         String summary = String.format("[munchyutils] %s earned in %s (%s)", total, sessionLength, income);
                         net.minecraft.text.Text colorful = net.minecraft.text.Text.literal("")
@@ -237,7 +238,7 @@ public class InfoHudCommand {
                                 if (feature.equalsIgnoreCase("infohud")) {
                                     var session = munchyutils.client.InfoHudOverlay.session;
                                     String income = session.getHourlyIncomeString();
-                                    String total = InfoHudSession.formatMoney(session.getTotalEarnings());
+                                    String total = Utils.formatMoney(session.getTotalEarnings());
                                     String sessionLength = session.getSessionLengthString().replace("Session: ", "");
                                     String summary = String.format("[munchyutils] %s earned in %s (%s)", total, sessionLength, income);
                                     net.minecraft.text.Text colorful = net.minecraft.text.Text.literal("")
@@ -267,7 +268,7 @@ public class InfoHudCommand {
                             if (feature.equalsIgnoreCase("infohud")) {
                                 var session = munchyutils.client.InfoHudOverlay.session;
                                 String income = session.getHourlyIncomeString();
-                                String total = InfoHudSession.formatMoney(session.getTotalEarnings());
+                                String total = Utils.formatMoney(session.getTotalEarnings());
                                 String sessionLength = session.getSessionLengthString().replace("Session: ", "");
                                 String summary = String.format("[munchyutils] %s earned in %s (%s)", total, sessionLength, income);
                                 net.minecraft.text.Text colorful = net.minecraft.text.Text.literal("")

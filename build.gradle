@@ -52,8 +52,6 @@ dependencies {
 	clientImplementation sourceSets.main.output
 	clientImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
-	// Cloth Config for config GUI
-	modImplementation "me.shedaniel.cloth:cloth-config-fabric:18.0.145"
 
 	modImplementation name: 'yet_another_config_lib_v3-3.6.6+1.21.5-fabric'
 	modImplementation "net.fabricmc.fabric-api:fabric-api:0.16.12+1.21.5"

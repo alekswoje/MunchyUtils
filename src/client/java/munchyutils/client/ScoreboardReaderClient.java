@@ -13,6 +13,8 @@ import org.slf4j.LoggerFactory;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import munchyutils.client.Utils;
+
 public class ScoreboardReaderClient {
     private static final Logger LOGGER = LoggerFactory.getLogger("munchyutils");
     private static int tickCounter = 0;
@@ -69,7 +71,7 @@ public class ScoreboardReaderClient {
             String plainLine = renderedLine.replaceAll("§.", "");
             Matcher matcher = BAL_PATTERN.matcher(plainLine);
             if (matcher.find()) {
-                double balance = BalanceParser.parseBalance(matcher.group(1));
+                double balance = Utils.parseBalance(matcher.group(1));
                 InfoHudOverlay.session.update(balance);
             }
         }

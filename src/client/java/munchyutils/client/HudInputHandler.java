@@ -1,4 +1,4 @@
-package munchyutils.munchyutils;
+package munchyutils.client;
 
 import net.minecraft.client.option.KeyBinding;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
