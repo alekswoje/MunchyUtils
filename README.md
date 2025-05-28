@@ -2,7 +2,7 @@
 
 **Made by HogMower**
 
-Credits to WuKnows and the other amazing people who created [item-guide.com](https://item-guide.com)
+Credits to WuKnow, floki and the other amazing people who created [item-guide.com](https://item-guide.com)
 
 A utility mod for MunchyMC that helps you track cooldowns, monitor your mining/fishing income, and get better special item hints than /thrift.
 
