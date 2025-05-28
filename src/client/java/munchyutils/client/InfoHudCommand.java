@@ -185,38 +185,6 @@ public class InfoHudCommand {
                         )
                     )
                 )
-                .then(ClientCommandManager.literal("feature")
-                    .then(ClientCommandManager.literal("list")
-                        .executes(ctx -> {
-                            var features = munchyutils.client.FeatureManager.getAll();
-                            for (var entry : features.entrySet()) {
-                                String name = entry.getKey().name().toLowerCase();
-                                boolean enabled = entry.getValue();
-                                int color = enabled ? 0x55FF55 : 0xFF5555; // green or red
-                                MinecraftClient.getInstance().player.sendMessage(net.minecraft.text.Text.literal("[munchyutils] " + (enabled ? "[ENABLED] " : "[DISABLED] ") + name).styled(s -> s.withColor(color)), false);
-                            }
-                            return 1;
-                        })
-                    )
-                    .then(ClientCommandManager.literal("toggle")
-                        .then(ClientCommandManager.argument("feature", StringArgumentType.string())
-                            .suggests(FEATURE_SUGGESTIONS)
-                            .executes(ctx -> {
-                                String featureName = StringArgumentType.getString(ctx, "feature").toUpperCase();
-                                try {
-                                    var feature = munchyutils.client.FeatureManager.ModFeature.valueOf(featureName);
-                                    munchyutils.client.FeatureManager.toggle(feature);
-                                    boolean enabled = munchyutils.client.FeatureManager.isEnabled(feature);
-                                    int color = enabled ? 0x55FF55 : 0xFF5555;
-                                    MinecraftClient.getInstance().player.sendMessage(net.minecraft.text.Text.literal("[munchyutils] " + (enabled ? "[ENABLED] " : "[DISABLED] ") + featureName.toLowerCase()).styled(s -> s.withColor(color)), false);
-                                } catch (IllegalArgumentException e) {
-                                    MinecraftClient.getInstance().player.sendMessage(net.minecraft.text.Text.literal("[munchyutils] Unknown feature: " + featureName).styled(s -> s.withColor(0xFF5555)), false);
-                                }
-                                return 1;
-                            })
-                        )
-                    )
-                )
                 .then(ClientCommandManager.argument("feature", StringArgumentType.string())
                     .then(ClientCommandManager.literal("reset")
                         .executes(ctx -> {
