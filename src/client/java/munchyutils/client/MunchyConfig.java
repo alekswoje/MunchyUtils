@@ -19,6 +19,12 @@ public class MunchyConfig {
     public int cooldownHudX = -1;
     public int cooldownHudY = -1;
     public float cooldownHudScale = 1.0f;
+    public boolean hideInventoryFullMessage = false;
+    public boolean hideSellSuccessMessage = false;
+    public boolean preventPorgUseIfActive = false;
+    public boolean autoAnnounceEnabled = false;
+    public boolean rotatingAnnouncementsEnabled = false;
+    public java.util.List<String> announcementList = new java.util.ArrayList<>();
 
     private transient Consumer<MunchyConfig> onChange;
 
@@ -76,4 +82,18 @@ public class MunchyConfig {
     public void setCooldownHudY(int y) { this.cooldownHudY = y; notifyChange(); save(); }
     public float getCooldownHudScale() { return cooldownHudScale; }
     public void setCooldownHudScale(float scale) { this.cooldownHudScale = scale; notifyChange(); save(); }
+
+    // Getters and setters for boolean config options
+    public boolean isHideInventoryFullMessage() { return hideInventoryFullMessage; }
+    public void setHideInventoryFullMessage(boolean v) { this.hideInventoryFullMessage = v; notifyChange(); save(); }
+    public boolean isHideSellSuccessMessage() { return hideSellSuccessMessage; }
+    public void setHideSellSuccessMessage(boolean v) { this.hideSellSuccessMessage = v; notifyChange(); save(); }
+    public boolean isPreventPorgUseIfActive() { return preventPorgUseIfActive; }
+    public void setPreventPorgUseIfActive(boolean v) { this.preventPorgUseIfActive = v; notifyChange(); save(); }
+    public boolean isAutoAnnounceEnabled() { return autoAnnounceEnabled; }
+    public void setAutoAnnounceEnabled(boolean v) { this.autoAnnounceEnabled = v; notifyChange(); save(); }
+    public boolean isRotatingAnnouncementsEnabled() { return rotatingAnnouncementsEnabled; }
+    public void setRotatingAnnouncementsEnabled(boolean v) { this.rotatingAnnouncementsEnabled = v; notifyChange(); save(); }
+    public java.util.List<String> getAnnouncementList() { return announcementList; }
+    public void setAnnouncementList(java.util.List<String> list) { this.announcementList = list; notifyChange(); save(); }
 } 

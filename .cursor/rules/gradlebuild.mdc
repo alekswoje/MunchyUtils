@@ -1,0 +1,6 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+When you finish making any code changes run ./gradlew build to ensure it builds correctly

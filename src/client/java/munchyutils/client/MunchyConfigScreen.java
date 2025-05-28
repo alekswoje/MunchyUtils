@@ -95,8 +95,29 @@ public class MunchyConfigScreen {
                 .controller(opt -> StringControllerBuilder.create(opt))
                 .build())
             .build();
+        Option<Boolean> hideInventoryFullMessage = Option.createBuilder(Boolean.class)
+            .name(Text.literal("Hide 'Inventory Full' Message"))
+            .description(OptionDescription.of(Text.literal("Suppresses the 'Your inventory is full! Click here to sell your items, or type /sell!' chat message.")))
+            .binding(config.isHideInventoryFullMessage(), config::isHideInventoryFullMessage, config::setHideInventoryFullMessage)
+            .controller(opt -> dev.isxander.yacl3.api.controller.BooleanControllerBuilder.create(opt))
+            .build();
+        Option<Boolean> hideSellSuccessMessage = Option.createBuilder(Boolean.class)
+            .name(Text.literal("Hide Sell Success Message"))
+            .description(OptionDescription.of(Text.literal("Suppresses the 'Successfully sold ... items for $...' chat message.")))
+            .binding(config.isHideSellSuccessMessage(), config::isHideSellSuccessMessage, config::setHideSellSuccessMessage)
+            .controller(opt -> dev.isxander.yacl3.api.controller.BooleanControllerBuilder.create(opt))
+            .build();
+        Option<Boolean> preventPorgUseIfActive = Option.createBuilder(Boolean.class)
+            .name(Text.literal("Prevent Porg Use if Buff Active"))
+            .description(OptionDescription.of(Text.literal("Prevents right-clicking Roasted Porg if the Porg buff is already active (2 min cooldown).")))
+            .binding(config.isPreventPorgUseIfActive(), config::isPreventPorgUseIfActive, config::setPreventPorgUseIfActive)
+            .controller(opt -> dev.isxander.yacl3.api.controller.BooleanControllerBuilder.create(opt))
+            .build();
         ConfigCategory miningHudCategory = ConfigCategory.createBuilder()
             .name(Text.literal("MiningHud"))
+            .option(hideInventoryFullMessage)
+            .option(hideSellSuccessMessage)
+            .option(preventPorgUseIfActive)
             .option(Option.createBuilder(String.class)
                 .name(Text.literal("MiningHud"))
                 .description(OptionDescription.of(Text.literal("Coming soon")))
@@ -137,6 +158,32 @@ public class MunchyConfigScreen {
             .option(resetAllButton)
             .build();
 
+        // New Cellshop options
+        Option<Boolean> autoAnnounceEnabled = Option.createBuilder(Boolean.class)
+            .name(Text.literal("Auto Announce"))
+            .description(OptionDescription.of(Text.literal("Automatically types /cellshop announce every 20 minutes and 5 seconds.")))
+            .binding(config.isAutoAnnounceEnabled(), config::isAutoAnnounceEnabled, config::setAutoAnnounceEnabled)
+            .controller(opt -> dev.isxander.yacl3.api.controller.BooleanControllerBuilder.create(opt))
+            .build();
+        Option<Boolean> rotatingAnnouncementsEnabled = Option.createBuilder(Boolean.class)
+            .name(Text.literal("Rotating Announcements"))
+            .description(OptionDescription.of(Text.literal("Rotate between multiple announcements. If enabled, after each announce, the next message in the list will be set using /cellshop setannouncement.")))
+            .binding(config.isRotatingAnnouncementsEnabled(), config::isRotatingAnnouncementsEnabled, config::setRotatingAnnouncementsEnabled)
+            .controller(opt -> dev.isxander.yacl3.api.controller.BooleanControllerBuilder.create(opt))
+            .build();
+        Option<String> announcementList = Option.createBuilder(String.class)
+            .name(Text.literal("Announcement List"))
+            .description(OptionDescription.of(Text.literal("Enter announcements separated by | (pipe). Used for rotating announcements.")))
+            .binding(String.join("|", config.getAnnouncementList()), () -> String.join("|", config.getAnnouncementList()), v -> config.setAnnouncementList(java.util.Arrays.asList(v.split("\\|"))))
+            .controller(opt -> StringControllerBuilder.create(opt))
+            .build();
+        ConfigCategory cellshopCategory = ConfigCategory.createBuilder()
+            .name(Text.literal("Cellshop"))
+            .option(autoAnnounceEnabled)
+            .option(rotatingAnnouncementsEnabled)
+            .option(announcementList)
+            .build();
+
         // Build the config screen
         return YetAnotherConfigLib.createBuilder()
             .title(Text.literal("MunchyUtils HUD Config"))
@@ -146,6 +193,7 @@ public class MunchyConfigScreen {
             .category(triggersCategory)
             .category(fishingHudCategory)
             .category(miningHudCategory)
+            .category(cellshopCategory)
             .build()
             .generateScreen(parent);
     }

@@ -16,6 +16,7 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import org.lwjgl.glfw.GLFW;
 
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.option.KeyBinding;
 import java.util.EnumMap;
 import java.util.Map;
@@ -38,6 +39,9 @@ public class MunchyUtilsClient implements ClientModInitializer {
 	private static Map<munchyutils.client.FeatureManager.ModFeature, int[]> tempHudPositions = new EnumMap<>(munchyutils.client.FeatureManager.ModFeature.class);
 	private static final int GRID_SIZE = 10;
 	private static final int HUD_MARGIN = 4;
+	// Auto Announce timer state
+	private long lastAnnounceTime = 0;
+	private int currentAnnouncementIndex = 0;
 
 	@Override
 	public void onInitializeClient() {
@@ -62,11 +66,31 @@ public class MunchyUtilsClient implements ClientModInitializer {
 			// Tick fishing HUD session timeout
 			munchyutils.client.InfoHudOverlay.fishingSession.tickTimeout();
 		});
+		// Register tick event for auto announce
+		net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(client -> {
+			if (client.player == null) return;
+			MunchyConfig config = MunchyConfig.get();
+			if (!config.isAutoAnnounceEnabled()) return;
+			long now = System.currentTimeMillis();
+			// 20 minutes and 5 seconds = 1,205,000 ms
+			if (lastAnnounceTime == 0) lastAnnounceTime = now;
+			if (now - lastAnnounceTime >= 1_205_000) {
+				if (config.isRotatingAnnouncementsEnabled() && !config.getAnnouncementList().isEmpty()) {
+					// Set the next announcement
+					String next = config.getAnnouncementList().get(currentAnnouncementIndex);
+					client.player.networkHandler.sendChatCommand("cellshop setannouncement " + next);
+					currentAnnouncementIndex = (currentAnnouncementIndex + 1) % config.getAnnouncementList().size();
+				}
+				// Announce
+				client.player.networkHandler.sendChatCommand("cellshop announce");
+				lastAnnounceTime = now;
+			}
+		});
 	}
 
 	private void registerKeyBindings() {
 		moveHudKey = new KeyBinding("key.munchyutils.move_hud", GLFW.GLFW_KEY_L, "MunchyUtils");
-		net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper.registerKeyBinding(moveHudKey);
+		KeyBindingHelper.registerKeyBinding(moveHudKey);
 	}
 
 	private void registerEventHandlers() {
@@ -163,6 +187,22 @@ public class MunchyUtilsClient implements ClientModInitializer {
 			if (world.isClient()) {
 				ItemStack stack = player.getStackInHand(hand);
 				String name = Utils.stripColorCodes(stack.getName().getString()).toLowerCase();
+				// --- PORG BUFF DETECTION & PREVENTION ---
+				if (name.contains("roasted porg")) {
+					MunchyConfig config = MunchyConfig.get();
+					if (config.isPreventPorgUseIfActive() && munchyutils.client.InfoHudOverlay.session.isPorgBuffActive()) {
+						if (MinecraftClient.getInstance().player != null) {
+							MinecraftClient.getInstance().player.sendMessage(net.minecraft.text.Text.literal("[munchyutils] Roasted Porg buff is already active! Wait for it to expire before using again.").styled(s -> s.withColor(0xA0522D)), true);
+						}
+						return ActionResult.FAIL;
+					} else {
+						// Activate the buff and show debug message
+						munchyutils.client.InfoHudOverlay.session.activatePorgBuff();
+						if (MinecraftClient.getInstance().player != null) {
+							MinecraftClient.getInstance().player.sendMessage(net.minecraft.text.Text.literal("[munchyutils] Roasted Porg buff activated for 2 minutes!").styled(s -> s.withColor(0xA0522D)), false);
+						}
+					}
+				}
 				for (CooldownTrigger trigger : CooldownManager.getTriggers()) {
 					if (trigger.type == CooldownTrigger.Type.HELD && trigger.action == CooldownTrigger.Action.RCLICK) {
 						if (name.contains(trigger.itemNamePart.toLowerCase())) {
@@ -217,11 +257,6 @@ public class MunchyUtilsClient implements ClientModInitializer {
 				// (Assume HourlyIncomeOverlay and AFK logic is here)
 			}
 		});
-		// Register both CHAT and GAME message events for fishing HUD debug
-		ClientReceiveMessageEvents.CHAT.register((message, signedMessage, sender, params, receptionTimestamp) -> {
-			//                System.out.println("[FishingHUD] CHAT event fired");
-			handleFishingChatMessage(message);
-		});
 		// AFK detection
 		final long[] lastInput = {System.currentTimeMillis()};
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
@@ -259,6 +294,10 @@ public class MunchyUtilsClient implements ClientModInitializer {
 			if (munchyutils.client.InfoHudOverlay.fishingSession.isAfk) {
 				munchyutils.client.InfoHudOverlay.fishingSession.tickAfk();
 			}
+		});
+		// Tick handler for Porg buff
+		ClientTickEvents.END_CLIENT_TICK.register(client -> {
+			munchyutils.client.InfoHudOverlay.session.tickPorgBuff();
 		});
 	}
 
@@ -389,5 +428,20 @@ public class MunchyUtilsClient implements ClientModInitializer {
 	}
 	public static boolean isFishingStatsLoaded() {
 		return munchyutils.client.InfoHudOverlay.fishingSession.playerLevel >= 0 && munchyutils.client.InfoHudOverlay.fishingSession.playerXP >= 0;
+	}
+
+	// Add a new public static method for chat message handling
+	public static void handleChatHudMessage(net.minecraft.text.Text message) {
+		String msg = message.getString();
+		MunchyConfig config = MunchyConfig.get();
+		if (config.isHideInventoryFullMessage() && msg.contains("Your inventory is full! Click here to sell your items, or type /sell!")) {
+			// Suppress message: handled in mixin by not calling super/addMessage
+			return;
+		}
+		if (config.isHideSellSuccessMessage() && msg.matches("Successfully sold \\d+ items for \\$[\\d,]+.*")) {
+			// Suppress message: handled in mixin by not calling super/addMessage
+			return;
+		}
+		handleFishingChatMessage(message);
 	}
 }

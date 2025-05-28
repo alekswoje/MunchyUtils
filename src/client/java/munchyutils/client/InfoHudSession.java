@@ -9,6 +9,10 @@ public class InfoHudSession extends HudSessionBase {
     public double currentBalance = 0;
     public boolean isActive = false;
 
+    // --- PORG BUFF TRACKING ---
+    private boolean porgBuffActive = false;
+    private long porgBuffExpireTime = 0;
+
     public void reset() {
         startTime = 0;
         lastChangeTime = 0;
@@ -79,5 +83,26 @@ public class InfoHudSession extends HudSessionBase {
     public double getTotalEarnings() {
         if (!isActive) return 0;
         return currentBalance - startBalance;
+    }
+
+    public void activatePorgBuff() {
+        porgBuffActive = true;
+        porgBuffExpireTime = System.currentTimeMillis() + 2 * 60 * 1000; // 2 minutes
+    }
+    public boolean isPorgBuffActive() {
+        return porgBuffActive && System.currentTimeMillis() < porgBuffExpireTime;
+    }
+    public long getPorgBuffRemainingMs() {
+        return isPorgBuffActive() ? (porgBuffExpireTime - System.currentTimeMillis()) : 0;
+    }
+    public void clearPorgBuff() {
+        porgBuffActive = false;
+        porgBuffExpireTime = 0;
+    }
+    // Call this in a tick handler to auto-clear
+    public void tickPorgBuff() {
+        if (porgBuffActive && System.currentTimeMillis() >= porgBuffExpireTime) {
+            clearPorgBuff();
+        }
     }
 } 

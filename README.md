@@ -8,9 +8,9 @@ A utility mod for MunchyMC that helps you track cooldowns, monitor your mining/f
 
 ## Configuration GUI
 
-This mod uses [YetAnotherConfigLib (YACL)](https://modrinth.com/mod/yacl) for its configuration GUI.
+This mod uses [YetAnotherConfigLib (YACL)](https://modrinth.com/mod/yacl?version=1.21.5&loader=fabric) for its configuration GUI.
 
-**YACL is bundled with the mod—no extra installation is needed!**
+**YACL is required for the config menu. If you do not have it installed, the game will crash when you try to open /mu config.**
 
 Open the config screen with `/mu config` or from Mod Menu. All features and HUDs are configurable here.
 
