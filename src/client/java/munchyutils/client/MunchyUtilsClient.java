@@ -75,12 +75,7 @@ public class MunchyUtilsClient implements ClientModInitializer {
 					String latest = obj.get("tag_name").getAsString();
 					String current = getModVersion();
 					if (!latest.equals(current)) {
-						MinecraftClient.getInstance().execute(() -> {
-							MinecraftClient.getInstance().player.sendMessage(
-								net.minecraft.text.Text.literal("§6[MunchyUtils] §cA new version is available: " + latest + " (You have: " + current + ")"),
-								false
-							);
-						});
+						MinecraftClient.getInstance().execute(() -> showUpdateWarningWhenReady(latest, current));
 					}
 				} catch (Exception e) {
 					// Optionally log or ignore
@@ -223,16 +218,10 @@ public class MunchyUtilsClient implements ClientModInitializer {
 				if (name.contains("roasted porg")) {
 					MunchyConfig config = MunchyConfig.get();
 					if (config.isPreventPorgUseIfActive() && munchyutils.client.InfoHudOverlay.session.isPorgBuffActive()) {
-						if (MinecraftClient.getInstance().player != null) {
-							MinecraftClient.getInstance().player.sendMessage(net.minecraft.text.Text.literal("[munchyutils] Roasted Porg buff is already active! Wait for it to expire before using again.").styled(s -> s.withColor(0xA0522D)), true);
-						}
 						return ActionResult.FAIL;
 					} else {
-						// Activate the buff and show debug message
+						// Activate the buff (no chat message)
 						munchyutils.client.InfoHudOverlay.session.activatePorgBuff();
-						if (MinecraftClient.getInstance().player != null) {
-							MinecraftClient.getInstance().player.sendMessage(net.minecraft.text.Text.literal("[munchyutils] Roasted Porg buff activated for 2 minutes!").styled(s -> s.withColor(0xA0522D)), false);
-						}
 					}
 				}
 				for (CooldownTrigger trigger : CooldownManager.getTriggers()) {
@@ -492,5 +481,20 @@ public class MunchyUtilsClient implements ClientModInitializer {
 			// ignore
 		}
 		return "unknown";
+	}
+
+	private static void showUpdateWarningWhenReady(String latest, String current) {
+		new Thread(() -> {
+			MinecraftClient client = MinecraftClient.getInstance();
+			while (client.player == null) {
+				try { Thread.sleep(500); } catch (InterruptedException ignored) {}
+			}
+			client.execute(() -> {
+				client.player.sendMessage(
+					net.minecraft.text.Text.literal("§6[MunchyUtils] §cA new version is available: " + latest + " (You have: " + current + ")"),
+					false
+				);
+			});
+		}, "MunchyUtils Update Warning").start();
 	}
 }

@@ -59,7 +59,34 @@ public class MunchyConfigScreen {
             .controller(opt -> FloatSliderControllerBuilder.create(opt).range(0.5f, 3.0f).step(0.01f))
             .build();
 
+        // General options
+        Option<Boolean> updateCheckEnabled = Option.createBuilder(Boolean.class)
+            .name(Text.literal("Enable Update Checker"))
+            .description(OptionDescription.of(Text.literal("Check for new MunchyUtils releases on GitHub and warn if out of date.")))
+            .binding(config.isUpdateCheckEnabled(), config::isUpdateCheckEnabled, config::setUpdateCheckEnabled)
+            .controller(opt -> dev.isxander.yacl3.api.controller.BooleanControllerBuilder.create(opt))
+            .build();
+        Option<Boolean> hideInventoryFullMessage = Option.createBuilder(Boolean.class)
+            .name(Text.literal("Hide 'Inventory Full' Message"))
+            .description(OptionDescription.of(Text.literal("Suppresses the 'Your inventory is full! Click here to sell your items, or type /sell!' chat message.")))
+            .binding(config.isHideInventoryFullMessage(), config::isHideInventoryFullMessage, config::setHideInventoryFullMessage)
+            .controller(opt -> dev.isxander.yacl3.api.controller.BooleanControllerBuilder.create(opt))
+            .build();
+        Option<Boolean> hideSellSuccessMessage = Option.createBuilder(Boolean.class)
+            .name(Text.literal("Hide Sell Success Message"))
+            .description(OptionDescription.of(Text.literal("Suppresses the 'Successfully sold ... items for $...' chat message.")))
+            .binding(config.isHideSellSuccessMessage(), config::isHideSellSuccessMessage, config::setHideSellSuccessMessage)
+            .controller(opt -> dev.isxander.yacl3.api.controller.BooleanControllerBuilder.create(opt))
+            .build();
+
         // Build categories
+        ConfigCategory generalCategory = ConfigCategory.createBuilder()
+            .name(Text.literal("General"))
+            .option(updateCheckEnabled)
+            .option(hideInventoryFullMessage)
+            .option(hideSellSuccessMessage)
+            .build();
+
         ConfigCategory infoHudCategory = ConfigCategory.createBuilder()
             .name(Text.literal("Info HUD"))
             .option(infoHudX)
@@ -95,36 +122,15 @@ public class MunchyConfigScreen {
                 .controller(opt -> StringControllerBuilder.create(opt))
                 .build())
             .build();
-        Option<Boolean> hideInventoryFullMessage = Option.createBuilder(Boolean.class)
-            .name(Text.literal("Hide 'Inventory Full' Message"))
-            .description(OptionDescription.of(Text.literal("Suppresses the 'Your inventory is full! Click here to sell your items, or type /sell!' chat message.")))
-            .binding(config.isHideInventoryFullMessage(), config::isHideInventoryFullMessage, config::setHideInventoryFullMessage)
-            .controller(opt -> dev.isxander.yacl3.api.controller.BooleanControllerBuilder.create(opt))
-            .build();
-        Option<Boolean> hideSellSuccessMessage = Option.createBuilder(Boolean.class)
-            .name(Text.literal("Hide Sell Success Message"))
-            .description(OptionDescription.of(Text.literal("Suppresses the 'Successfully sold ... items for $...' chat message.")))
-            .binding(config.isHideSellSuccessMessage(), config::isHideSellSuccessMessage, config::setHideSellSuccessMessage)
-            .controller(opt -> dev.isxander.yacl3.api.controller.BooleanControllerBuilder.create(opt))
-            .build();
         Option<Boolean> preventPorgUseIfActive = Option.createBuilder(Boolean.class)
             .name(Text.literal("Prevent Porg Use if Buff Active"))
             .description(OptionDescription.of(Text.literal("Prevents right-clicking Roasted Porg if the Porg buff is already active (2 min cooldown).")))
             .binding(config.isPreventPorgUseIfActive(), config::isPreventPorgUseIfActive, config::setPreventPorgUseIfActive)
             .controller(opt -> dev.isxander.yacl3.api.controller.BooleanControllerBuilder.create(opt))
             .build();
-        Option<Boolean> updateCheckEnabled = Option.createBuilder(Boolean.class)
-            .name(Text.literal("Enable Update Checker"))
-            .description(OptionDescription.of(Text.literal("Check for new MunchyUtils releases on GitHub and warn if out of date.")))
-            .binding(config.isUpdateCheckEnabled(), config::isUpdateCheckEnabled, config::setUpdateCheckEnabled)
-            .controller(opt -> dev.isxander.yacl3.api.controller.BooleanControllerBuilder.create(opt))
-            .build();
         ConfigCategory miningHudCategory = ConfigCategory.createBuilder()
             .name(Text.literal("MiningHud"))
-            .option(hideInventoryFullMessage)
-            .option(hideSellSuccessMessage)
             .option(preventPorgUseIfActive)
-            .option(updateCheckEnabled)
             .option(Option.createBuilder(String.class)
                 .name(Text.literal("MiningHud"))
                 .description(OptionDescription.of(Text.literal("Coming soon")))
@@ -193,14 +199,15 @@ public class MunchyConfigScreen {
 
         // Build the config screen
         return YetAnotherConfigLib.createBuilder()
-            .title(Text.literal("MunchyUtils HUD Config"))
-            .category(hudLayoutCategory)
-            .category(infoHudCategory)
+            .title(Text.literal("MunchyUtils Config"))
+            .category(generalCategory)
             .category(cooldownHudCategory)
+            .category(infoHudCategory)
             .category(triggersCategory)
             .category(fishingHudCategory)
             .category(miningHudCategory)
             .category(cellshopCategory)
+            .category(hudLayoutCategory)
             .build()
             .generateScreen(parent);
     }
