@@ -3,7 +3,8 @@
 	"package": "munchyutils.mixins",
 	"compatibilityLevel": "JAVA_21",
 	"client": [
-		"ChatHudMixin"
+		"ChatHudMixin",
+		"RoastedPorgItemMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

@@ -9,6 +9,10 @@ public class InfoHudSession extends HudSessionBase {
     public double currentBalance = 0;
     public boolean isActive = false;
 
+    // --- PORG BUFF TRACKING ---
+    private boolean porgBuffActive = false;
+    private long porgBuffExpireTime = 0;
+
     public void reset() {
         startTime = 0;
         lastChangeTime = 0;
@@ -21,16 +25,21 @@ public class InfoHudSession extends HudSessionBase {
     public void update(double newBalance) {
         long now = System.currentTimeMillis();
         if (!isActive) {
-            // Only start session if balance goes up
-            if (newBalance > startBalance) {
-                startTime = now;
+            // On first update after login, just set balances
+            if (currentBalance == 0 && startBalance == 0) {
                 startBalance = newBalance;
+                currentBalance = newBalance;
+                return;
+            }
+            // Only start session if balance goes up after initial login
+            if (currentBalance != 0 && newBalance > currentBalance) {
+                startTime = now;
+                startBalance = currentBalance;
                 isActive = true;
                 lastChangeTime = now;
                 currentBalance = newBalance;
             } else {
-                // Don't start session yet
-                startBalance = newBalance;
+                // Don't start session yet, just update currentBalance
                 currentBalance = newBalance;
             }
         } else if (newBalance != currentBalance) {
@@ -40,7 +49,7 @@ public class InfoHudSession extends HudSessionBase {
             if (getHourlyIncome() < 0) {
                 reset();
                 startTime = now;
-                startBalance = newBalance;
+                startBalance = currentBalance;
                 isActive = true;
                 lastChangeTime = now;
                 currentBalance = newBalance;
@@ -49,7 +58,10 @@ public class InfoHudSession extends HudSessionBase {
     }
 
     public boolean shouldTimeout() {
-        return isActive && (System.currentTimeMillis() - lastChangeTime > 2 * 60 * 1000);
+        MunchyConfig config = munchyutils.client.MunchyConfig.get();
+        if (!config.isMiningHudSessionTimeoutEnabled()) return false;
+        int timeout = config.getMiningHudSessionTimeoutMs();
+        return isActive && (System.currentTimeMillis() - lastChangeTime > timeout);
     }
 
     public String getHourlyIncomeString() {
@@ -79,5 +91,26 @@ public class InfoHudSession extends HudSessionBase {
     public double getTotalEarnings() {
         if (!isActive) return 0;
         return currentBalance - startBalance;
+    }
+
+    public void activatePorgBuff() {
+        porgBuffActive = true;
+        porgBuffExpireTime = System.currentTimeMillis() + 2 * 60 * 1000; // 2 minutes
+    }
+    public boolean isPorgBuffActive() {
+        return porgBuffActive && System.currentTimeMillis() < porgBuffExpireTime;
+    }
+    public long getPorgBuffRemainingMs() {
+        return isPorgBuffActive() ? (porgBuffExpireTime - System.currentTimeMillis()) : 0;
+    }
+    public void clearPorgBuff() {
+        porgBuffActive = false;
+        porgBuffExpireTime = 0;
+    }
+    // Call this in a tick handler to auto-clear
+    public void tickPorgBuff() {
+        if (porgBuffActive && System.currentTimeMillis() >= porgBuffExpireTime) {
+            clearPorgBuff();
+        }
     }
 } 

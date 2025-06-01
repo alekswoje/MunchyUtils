@@ -16,6 +16,7 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import org.lwjgl.glfw.GLFW;
 
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.option.KeyBinding;
 import java.util.EnumMap;
 import java.util.Map;
@@ -25,6 +26,16 @@ import com.mojang.authlib.GameProfile;
 import net.fabricmc.fabric.api.event.player.AttackBlockCallback;
 import munchyutils.client.HudInputHandler;
 import munchyutils.client.Utils;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.Scanner;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import java.io.InputStream;
+import net.fabricmc.loader.api.FabricLoader;
+import net.fabricmc.loader.api.ModContainer;
+import net.minecraft.sound.SoundEvents;
+import java.util.HashSet;
 
 public class MunchyUtilsClient implements ClientModInitializer {
 	private KeyBinding moveHudKey;
@@ -38,6 +49,12 @@ public class MunchyUtilsClient implements ClientModInitializer {
 	private static Map<munchyutils.client.FeatureManager.ModFeature, int[]> tempHudPositions = new EnumMap<>(munchyutils.client.FeatureManager.ModFeature.class);
 	private static final int GRID_SIZE = 10;
 	private static final int HUD_MARGIN = 4;
+	// Auto Announce timer state
+	private long lastAnnounceTime = 0;
+	private int currentAnnouncementIndex = 0;
+	private long pendingAnnounceTime = 0;
+	private boolean pendingAnnounce = false;
+	private String trackedPlayerNameOrUuid = "";
 
 	@Override
 	public void onInitializeClient() {
@@ -51,6 +68,27 @@ public class MunchyUtilsClient implements ClientModInitializer {
 		munchyutils.client.InfoHudCommand.register();
 		// Load fishing stats on startup
 		munchyutils.client.InfoHudOverlay.fishingSession.loadStats();
+		// Update checker (runs once on startup)
+		if (MunchyConfig.get().isUpdateCheckEnabled()) {
+			new Thread(() -> {
+				try {
+					URL url = new URL("https://api.github.com/repos/alekswoje/MunchyUtils/releases/latest");
+					HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+					conn.setRequestMethod("GET");
+					conn.setRequestProperty("Accept", "application/vnd.github+json");
+					InputStream is = conn.getInputStream();
+					String json = new Scanner(is).useDelimiter("\\A").next();
+					JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
+					String latest = obj.get("tag_name").getAsString();
+					String current = getModVersion();
+					if (!latest.equals(current)) {
+						MinecraftClient.getInstance().execute(() -> showUpdateWarningWhenReady(latest, current));
+					}
+				} catch (Exception e) {
+					// Optionally log or ignore
+				}
+			}, "MunchyUtils Update Checker").start();
+		}
 		// Register tick event for delayed config screen opening
 		net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			if (munchyutils.client.InfoHudCommand.scheduledConfigScreenTicks >= 0) {
@@ -62,11 +100,28 @@ public class MunchyUtilsClient implements ClientModInitializer {
 			// Tick fishing HUD session timeout
 			munchyutils.client.InfoHudOverlay.fishingSession.tickTimeout();
 		});
+		// End session if tool is removed from hotbar
+		ClientTickEvents.END_CLIENT_TICK.register(client -> {
+			if (client.player == null) return;
+			boolean hasPickaxe = false, hasFishingRod = false;
+			for (int i = 0; i < 9; i++) {
+				ItemStack stack = client.player.getInventory().getStack(i);
+				if (stack.isEmpty()) continue;
+				if (munchyutils.client.Utils.isPickaxe(stack)) hasPickaxe = true;
+				if (stack.getItem() == net.minecraft.item.Items.FISHING_ROD) hasFishingRod = true;
+			}
+			if (!hasPickaxe && munchyutils.client.InfoHudOverlay.session.isActive) {
+				munchyutils.client.InfoHudOverlay.session.reset();
+			}
+			if (!hasFishingRod && munchyutils.client.InfoHudOverlay.fishingSession.isActive) {
+				munchyutils.client.InfoHudOverlay.fishingSession.reset();
+			}
+		});
 	}
 
 	private void registerKeyBindings() {
 		moveHudKey = new KeyBinding("key.munchyutils.move_hud", GLFW.GLFW_KEY_L, "MunchyUtils");
-		net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper.registerKeyBinding(moveHudKey);
+		KeyBindingHelper.registerKeyBinding(moveHudKey);
 	}
 
 	private void registerEventHandlers() {
@@ -163,6 +218,16 @@ public class MunchyUtilsClient implements ClientModInitializer {
 			if (world.isClient()) {
 				ItemStack stack = player.getStackInHand(hand);
 				String name = Utils.stripColorCodes(stack.getName().getString()).toLowerCase();
+				// --- PORG BUFF DETECTION & PREVENTION ---
+				if (name.contains("roasted porg")) {
+					MunchyConfig config = MunchyConfig.get();
+					if (config.isPreventPorgUseIfActive() && munchyutils.client.InfoHudOverlay.session.isPorgBuffActive()) {
+						return ActionResult.FAIL;
+					} else {
+						// Activate the buff (no chat message)
+						munchyutils.client.InfoHudOverlay.session.activatePorgBuff();
+					}
+				}
 				for (CooldownTrigger trigger : CooldownManager.getTriggers()) {
 					if (trigger.type == CooldownTrigger.Type.HELD && trigger.action == CooldownTrigger.Action.RCLICK) {
 						if (name.contains(trigger.itemNamePart.toLowerCase())) {
@@ -217,11 +282,6 @@ public class MunchyUtilsClient implements ClientModInitializer {
 				// (Assume HourlyIncomeOverlay and AFK logic is here)
 			}
 		});
-		// Register both CHAT and GAME message events for fishing HUD debug
-		ClientReceiveMessageEvents.CHAT.register((message, signedMessage, sender, params, receptionTimestamp) -> {
-			//                System.out.println("[FishingHUD] CHAT event fired");
-			handleFishingChatMessage(message);
-		});
 		// AFK detection
 		final long[] lastInput = {System.currentTimeMillis()};
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
@@ -247,10 +307,14 @@ public class MunchyUtilsClient implements ClientModInitializer {
 				munchyutils.client.InfoHudOverlay.session.setAfk(false);
 				munchyutils.client.InfoHudOverlay.fishingSession.setAfk(false);
 			}
-			if (!munchyutils.client.InfoHudOverlay.session.isAfk && now - lastInput[0] > 60_000) {
+			int miningAfkTimeout = MunchyConfig.get().getMiningHudAfkTimeoutMs();
+			int fishingAfkTimeout = MunchyConfig.get().getFishingHudAfkTimeoutMs();
+			boolean miningAfkEnabled = MunchyConfig.get().isMiningHudAfkTimeoutEnabled();
+			boolean fishingAfkEnabled = MunchyConfig.get().isFishingHudAfkTimeoutEnabled();
+			if (miningAfkEnabled && !munchyutils.client.InfoHudOverlay.session.isAfk && now - lastInput[0] > miningAfkTimeout) {
 				munchyutils.client.InfoHudOverlay.session.setAfk(true);
 			}
-			if (!munchyutils.client.InfoHudOverlay.fishingSession.isAfk && now - lastInput[0] > 60_000) {
+			if (fishingAfkEnabled && !munchyutils.client.InfoHudOverlay.fishingSession.isAfk && now - lastInput[0] > fishingAfkTimeout) {
 				munchyutils.client.InfoHudOverlay.fishingSession.setAfk(true);
 			}
 			if (munchyutils.client.InfoHudOverlay.session.isAfk) {
@@ -259,6 +323,10 @@ public class MunchyUtilsClient implements ClientModInitializer {
 			if (munchyutils.client.InfoHudOverlay.fishingSession.isAfk) {
 				munchyutils.client.InfoHudOverlay.fishingSession.tickAfk();
 			}
+		});
+		// Tick handler for Porg buff
+		ClientTickEvents.END_CLIENT_TICK.register(client -> {
+			munchyutils.client.InfoHudOverlay.session.tickPorgBuff();
 		});
 	}
 
@@ -389,5 +457,43 @@ public class MunchyUtilsClient implements ClientModInitializer {
 	}
 	public static boolean isFishingStatsLoaded() {
 		return munchyutils.client.InfoHudOverlay.fishingSession.playerLevel >= 0 && munchyutils.client.InfoHudOverlay.fishingSession.playerXP >= 0;
+	}
+
+	// Add a new public static method for chat message handling
+	public static void handleChatHudMessage(net.minecraft.text.Text message) {
+		String msg = message.getString();
+		MunchyConfig config = MunchyConfig.get();
+		if (config.isHideInventoryFullMessage() && msg.contains("Your inventory is full! Click here to sell your items, or type /sell!")) {
+			// Suppress message: handled in mixin by not calling super/addMessage
+			return;
+		}
+		if (config.isHideSellSuccessMessage() && msg.matches("Successfully sold \\d+ items for \\$[\\d,]+.*")) {
+			// Suppress message: handled in mixin by not calling super/addMessage
+			return;
+		}
+		handleFishingChatMessage(message);
+	}
+
+	// Helper to get the current mod version using Fabric Loader's metadata API
+	private static String getModVersion() {
+		return FabricLoader.getInstance()
+			.getModContainer("munchyutils")
+			.map(mod -> mod.getMetadata().getVersion().getFriendlyString())
+			.orElse("unknown");
+	}
+
+	private static void showUpdateWarningWhenReady(String latest, String current) {
+		new Thread(() -> {
+			MinecraftClient client = MinecraftClient.getInstance();
+			while (client.player == null) {
+				try { Thread.sleep(500); } catch (InterruptedException ignored) {}
+			}
+			client.execute(() -> {
+				client.player.sendMessage(
+					net.minecraft.text.Text.literal("§6[MunchyUtils] §cA new version is available: " + latest + " (You have: " + current + ")"),
+					false
+				);
+			});
+		}, "MunchyUtils Update Warning").start();
 	}
 }

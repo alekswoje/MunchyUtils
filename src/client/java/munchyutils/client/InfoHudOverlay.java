@@ -59,7 +59,7 @@ public class InfoHudOverlay extends BaseHudOverlay {
     private static double origMouseX = 0, origMouseY = 0;
 
     public static void register() {
-        HudRenderCallback.EVENT.register((DrawContext context, RenderTickCounter tickCounter) -> {
+        HudRenderCallback.EVENT.register((context, tickDelta) -> {
             if (isEditScreenActive()) return; // Hide real HUD in edit mode
             MinecraftClient client = MinecraftClient.getInstance();
             if (client == null || client.options == null) return;
@@ -231,8 +231,7 @@ public class InfoHudOverlay extends BaseHudOverlay {
             }
             // Only render mining HUD if showMining is true, session is active, and feature is enabled
             if (!munchyutils.client.HudInputHandler.isMoveMode) {
-                if (!showMining || !FeatureManager.isEnabled(FeatureManager.ModFeature.INFO_HUD) || !session.isActive) return;
-                if (!FeatureManager.isEnabled(FeatureManager.ModFeature.INFO_HUD) || !session.isActive) return;
+                if (!showMining || !FeatureManager.isEnabled(FeatureManager.ModFeature.INFO_HUD)) return;
             }
             TextRenderer textRenderer = client.textRenderer;
             int[] movePos = MunchyUtilsClient.getMoveHudPosition(FeatureManager.ModFeature.INFO_HUD);
@@ -247,21 +246,41 @@ public class InfoHudOverlay extends BaseHudOverlay {
             int posColor = 0xFF8FCB9B; // soft green
             int neutralColor = 0xFFF2C97D; // soft amber
             int negColor = 0xFFE57373; // soft red
+            int porgColor = 0xFFA0522D; // brown for Porg buff
             // Calculate overlay size based on content
             int maxTextWidth = 0;
             int numLines = 4;
-            String incomeLine = "Income: " + session.getHourlyIncomeString();
-            int incomeWidth = textRenderer.getWidth(incomeLine) + 18;
+            String incomeLine, totalLine, sessionLine, afkLine, porgBuffLine = null;
+            int incomeWidth, totalWidth, sessionWidth, afkWidth, porgBuffWidth = 0;
+            if (session.isActive) {
+                incomeLine = "Income: " + session.getHourlyIncomeString();
+                totalLine = "Total: " + Utils.formatMoney(session.getTotalEarnings());
+                sessionLine = session.getSessionLengthString();
+                afkLine = session.isAfk ? "AFK" : "Active";
+                if (session.isPorgBuffActive()) {
+                    long ms = session.getPorgBuffRemainingMs();
+                    long sec = ms / 1000;
+                    porgBuffLine = "Porg Buff: " + sec + "s left";
+                    numLines++;
+                }
+            } else {
+                incomeLine = "Income: $0/hr";
+                totalLine = "Total: $0";
+                sessionLine = "Session: 0m 0s";
+                afkLine = "Active";
+            }
+            incomeWidth = textRenderer.getWidth(incomeLine) + 18;
             if (incomeWidth > maxTextWidth) maxTextWidth = incomeWidth;
-            String totalLine = "Total: " + Utils.formatMoney(session.getTotalEarnings());
-            int totalWidth = textRenderer.getWidth(totalLine) + 18;
+            totalWidth = textRenderer.getWidth(totalLine) + 18;
             if (totalWidth > maxTextWidth) maxTextWidth = totalWidth;
-            String sessionLine = session.getSessionLengthString();
-            int sessionWidth = textRenderer.getWidth(sessionLine) + 18;
+            sessionWidth = textRenderer.getWidth(sessionLine) + 18;
             if (sessionWidth > maxTextWidth) maxTextWidth = sessionWidth;
-            String afkLine = session.isAfk ? "AFK" : "Active";
-            int afkWidth = textRenderer.getWidth(afkLine) + 18;
+            afkWidth = textRenderer.getWidth(afkLine) + 18;
             if (afkWidth > maxTextWidth) maxTextWidth = afkWidth;
+            if (porgBuffLine != null) {
+                porgBuffWidth = textRenderer.getWidth(porgBuffLine) + 18;
+                if (porgBuffWidth > maxTextWidth) maxTextWidth = porgBuffWidth;
+            }
             overlayWidth = (int)((maxTextWidth + 12) * scale);
             overlayHeight = (int)((numLines * 16 + 12) * scale);
             lastOverlayWidth = overlayWidth;
@@ -280,24 +299,35 @@ public class InfoHudOverlay extends BaseHudOverlay {
             }
             // Determine color for income
             int incomeColor = session.getHourlyIncome() > 0 ? posColor : (session.getHourlyIncome() < 0 ? negColor : neutralColor);
+            int lineIdx = 0;
             // Draw hourly income line
             int dotY = (int)(y + 8 * scale - 3 * scale);
             int dotX = (int)x;
             context.fill(dotX, dotY, (int)(dotX + 6 * scale), (int)(dotY + 6 * scale), incomeColor & 0xAAFFFFFF); // semi-transparent
             context.drawText(textRenderer, incomeLine, (int)(x + 6 * scale + 4 * scale), (int)(y + 4 * scale), textColor, false);
+            lineIdx++;
             // Draw total earnings line
             int totalDotY = (int)(y + 8 * scale + 16 * scale - 3 * scale);
             context.fill(dotX, totalDotY, (int)(dotX + 6 * scale), (int)(totalDotY + 6 * scale), sessionColor & 0xAAFFFFFF); // match session color
             context.drawText(textRenderer, totalLine, (int)(x + 6 * scale + 4 * scale), (int)(y + 4 * scale + 16 * scale), textColor, false);
+            lineIdx++;
             // Draw session time line
             int sessionDotY = (int)(y + 8 * scale + 32 * scale - 3 * scale);
             context.fill(dotX, sessionDotY, (int)(dotX + 6 * scale), (int)(sessionDotY + 6 * scale), sessionColor & 0xAAFFFFFF);
             context.drawText(textRenderer, sessionLine, (int)(x + 6 * scale + 4 * scale), (int)(y + 4 * scale + 32 * scale), textColor, false);
+            lineIdx++;
+            // Draw Porg buff line if active
+            if (session.isPorgBuffActive() && porgBuffLine != null) {
+                int porgDotY = (int)(y + 8 * scale + 48 * scale - 3 * scale);
+                context.fill(dotX, porgDotY, (int)(dotX + 6 * scale), (int)(porgDotY + 6 * scale), porgColor & 0xAAFFFFFF);
+                context.drawText(textRenderer, porgBuffLine, (int)(x + 6 * scale + 4 * scale), (int)(y + 4 * scale + 48 * scale), porgColor, false);
+                lineIdx++;
+            }
             // Draw AFK status line
             int afkColor = session.isAfk ? neutralColor : posColor;
-            int afkDotY = (int)(y + 8 * scale + 48 * scale - 3 * scale);
+            int afkDotY = (int)(y + 8 * scale + (16 * (numLines - 1)) - 3 * scale);
             context.fill(dotX, afkDotY, (int)(dotX + 6 * scale), (int)(afkDotY + 6 * scale), afkColor & 0xAAFFFFFF);
-            context.drawText(textRenderer, afkLine, (int)(x + 6 * scale + 4 * scale), (int)(y + 4 * scale + 48 * scale), textColor, false);
+            context.drawText(textRenderer, afkLine, (int)(x + 6 * scale + 4 * scale), (int)(y + 4 * scale + (16 * (numLines - 1)) * scale / 1.0f), textColor, false);
             // After calculating overlayWidth/overlayHeight:
             int[] posSize = Utils.getClampedPositionAndSize(x, y, overlayWidth, overlayHeight, winW, winH);
             x = posSize[0];
