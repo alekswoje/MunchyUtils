@@ -32,6 +32,10 @@ import java.util.Scanner;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.io.InputStream;
+import net.fabricmc.loader.api.FabricLoader;
+import net.fabricmc.loader.api.ModContainer;
+import net.minecraft.sound.SoundEvents;
+import java.util.HashSet;
 
 public class MunchyUtilsClient implements ClientModInitializer {
 	private KeyBinding moveHudKey;
@@ -48,6 +52,9 @@ public class MunchyUtilsClient implements ClientModInitializer {
 	// Auto Announce timer state
 	private long lastAnnounceTime = 0;
 	private int currentAnnouncementIndex = 0;
+	private long pendingAnnounceTime = 0;
+	private boolean pendingAnnounce = false;
+	private String trackedPlayerNameOrUuid = "";
 
 	@Override
 	public void onInitializeClient() {
@@ -93,24 +100,21 @@ public class MunchyUtilsClient implements ClientModInitializer {
 			// Tick fishing HUD session timeout
 			munchyutils.client.InfoHudOverlay.fishingSession.tickTimeout();
 		});
-		// Register tick event for auto announce
-		net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(client -> {
+		// End session if tool is removed from hotbar
+		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			if (client.player == null) return;
-			MunchyConfig config = MunchyConfig.get();
-			if (!config.isAutoAnnounceEnabled()) return;
-			long now = System.currentTimeMillis();
-			// 20 minutes and 5 seconds = 1,205,000 ms
-			if (lastAnnounceTime == 0) lastAnnounceTime = now;
-			if (now - lastAnnounceTime >= 1_205_000) {
-				if (config.isRotatingAnnouncementsEnabled() && !config.getAnnouncementList().isEmpty()) {
-					// Set the next announcement
-					String next = config.getAnnouncementList().get(currentAnnouncementIndex);
-					client.player.networkHandler.sendChatCommand("cellshop setannouncement " + next);
-					currentAnnouncementIndex = (currentAnnouncementIndex + 1) % config.getAnnouncementList().size();
-				}
-				// Announce
-				client.player.networkHandler.sendChatCommand("cellshop announce");
-				lastAnnounceTime = now;
+			boolean hasPickaxe = false, hasFishingRod = false;
+			for (int i = 0; i < 9; i++) {
+				ItemStack stack = client.player.getInventory().getStack(i);
+				if (stack.isEmpty()) continue;
+				if (munchyutils.client.Utils.isPickaxe(stack)) hasPickaxe = true;
+				if (stack.getItem() == net.minecraft.item.Items.FISHING_ROD) hasFishingRod = true;
+			}
+			if (!hasPickaxe && munchyutils.client.InfoHudOverlay.session.isActive) {
+				munchyutils.client.InfoHudOverlay.session.reset();
+			}
+			if (!hasFishingRod && munchyutils.client.InfoHudOverlay.fishingSession.isActive) {
+				munchyutils.client.InfoHudOverlay.fishingSession.reset();
 			}
 		});
 	}
@@ -303,10 +307,14 @@ public class MunchyUtilsClient implements ClientModInitializer {
 				munchyutils.client.InfoHudOverlay.session.setAfk(false);
 				munchyutils.client.InfoHudOverlay.fishingSession.setAfk(false);
 			}
-			if (!munchyutils.client.InfoHudOverlay.session.isAfk && now - lastInput[0] > 60_000) {
+			int miningAfkTimeout = MunchyConfig.get().getMiningHudAfkTimeoutMs();
+			int fishingAfkTimeout = MunchyConfig.get().getFishingHudAfkTimeoutMs();
+			boolean miningAfkEnabled = MunchyConfig.get().isMiningHudAfkTimeoutEnabled();
+			boolean fishingAfkEnabled = MunchyConfig.get().isFishingHudAfkTimeoutEnabled();
+			if (miningAfkEnabled && !munchyutils.client.InfoHudOverlay.session.isAfk && now - lastInput[0] > miningAfkTimeout) {
 				munchyutils.client.InfoHudOverlay.session.setAfk(true);
 			}
-			if (!munchyutils.client.InfoHudOverlay.fishingSession.isAfk && now - lastInput[0] > 60_000) {
+			if (fishingAfkEnabled && !munchyutils.client.InfoHudOverlay.fishingSession.isAfk && now - lastInput[0] > fishingAfkTimeout) {
 				munchyutils.client.InfoHudOverlay.fishingSession.setAfk(true);
 			}
 			if (munchyutils.client.InfoHudOverlay.session.isAfk) {
@@ -466,21 +474,12 @@ public class MunchyUtilsClient implements ClientModInitializer {
 		handleFishingChatMessage(message);
 	}
 
-	// Helper to get the current mod version from fabric.mod.json
+	// Helper to get the current mod version using Fabric Loader's metadata API
 	private static String getModVersion() {
-		try {
-			InputStream is = MunchyUtilsClient.class.getClassLoader().getResourceAsStream("fabric.mod.json");
-			if (is != null) {
-				Scanner scanner = new Scanner(is).useDelimiter("\\A");
-				String json = scanner.hasNext() ? scanner.next() : "";
-				scanner.close();
-				JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
-				return obj.get("version").getAsString();
-			}
-		} catch (Exception e) {
-			// ignore
-		}
-		return "unknown";
+		return FabricLoader.getInstance()
+			.getModContainer("munchyutils")
+			.map(mod -> mod.getMetadata().getVersion().getFriendlyString())
+			.orElse("unknown");
 	}
 
 	private static void showUpdateWarningWhenReady(String latest, String current) {

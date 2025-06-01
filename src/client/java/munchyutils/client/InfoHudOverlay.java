@@ -231,8 +231,7 @@ public class InfoHudOverlay extends BaseHudOverlay {
             }
             // Only render mining HUD if showMining is true, session is active, and feature is enabled
             if (!munchyutils.client.HudInputHandler.isMoveMode) {
-                if (!showMining || !FeatureManager.isEnabled(FeatureManager.ModFeature.INFO_HUD) || !session.isActive) return;
-                if (!FeatureManager.isEnabled(FeatureManager.ModFeature.INFO_HUD) || !session.isActive) return;
+                if (!showMining || !FeatureManager.isEnabled(FeatureManager.ModFeature.INFO_HUD)) return;
             }
             TextRenderer textRenderer = client.textRenderer;
             int[] movePos = MunchyUtilsClient.getMoveHudPosition(FeatureManager.ModFeature.INFO_HUD);
@@ -251,27 +250,36 @@ public class InfoHudOverlay extends BaseHudOverlay {
             // Calculate overlay size based on content
             int maxTextWidth = 0;
             int numLines = 4;
-            String incomeLine = "Income: " + session.getHourlyIncomeString();
-            int incomeWidth = textRenderer.getWidth(incomeLine) + 18;
+            String incomeLine, totalLine, sessionLine, afkLine, porgBuffLine = null;
+            int incomeWidth, totalWidth, sessionWidth, afkWidth, porgBuffWidth = 0;
+            if (session.isActive) {
+                incomeLine = "Income: " + session.getHourlyIncomeString();
+                totalLine = "Total: " + Utils.formatMoney(session.getTotalEarnings());
+                sessionLine = session.getSessionLengthString();
+                afkLine = session.isAfk ? "AFK" : "Active";
+                if (session.isPorgBuffActive()) {
+                    long ms = session.getPorgBuffRemainingMs();
+                    long sec = ms / 1000;
+                    porgBuffLine = "Porg Buff: " + sec + "s left";
+                    numLines++;
+                }
+            } else {
+                incomeLine = "Income: $0/hr";
+                totalLine = "Total: $0";
+                sessionLine = "Session: 0m 0s";
+                afkLine = "Active";
+            }
+            incomeWidth = textRenderer.getWidth(incomeLine) + 18;
             if (incomeWidth > maxTextWidth) maxTextWidth = incomeWidth;
-            String totalLine = "Total: " + Utils.formatMoney(session.getTotalEarnings());
-            int totalWidth = textRenderer.getWidth(totalLine) + 18;
+            totalWidth = textRenderer.getWidth(totalLine) + 18;
             if (totalWidth > maxTextWidth) maxTextWidth = totalWidth;
-            String sessionLine = session.getSessionLengthString();
-            int sessionWidth = textRenderer.getWidth(sessionLine) + 18;
+            sessionWidth = textRenderer.getWidth(sessionLine) + 18;
             if (sessionWidth > maxTextWidth) maxTextWidth = sessionWidth;
-            String afkLine = session.isAfk ? "AFK" : "Active";
-            int afkWidth = textRenderer.getWidth(afkLine) + 18;
+            afkWidth = textRenderer.getWidth(afkLine) + 18;
             if (afkWidth > maxTextWidth) maxTextWidth = afkWidth;
-            String porgBuffLine = null;
-            int porgBuffWidth = 0;
-            if (session.isPorgBuffActive()) {
-                long ms = session.getPorgBuffRemainingMs();
-                long sec = ms / 1000;
-                porgBuffLine = "Porg Buff: " + sec + "s left";
+            if (porgBuffLine != null) {
                 porgBuffWidth = textRenderer.getWidth(porgBuffLine) + 18;
                 if (porgBuffWidth > maxTextWidth) maxTextWidth = porgBuffWidth;
-                numLines++;
             }
             overlayWidth = (int)((maxTextWidth + 12) * scale);
             overlayHeight = (int)((numLines * 16 + 12) * scale);

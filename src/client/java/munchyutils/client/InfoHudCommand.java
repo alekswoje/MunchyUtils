@@ -145,7 +145,7 @@ public class InfoHudCommand {
                                                         MinecraftClient.getInstance().player.sendMessage(Text.literal("[munchyutils] A trigger with that name already exists."), false);
                                                         return 0;
                                                     }
-                                                    CooldownTrigger trigger = new CooldownTrigger(name, type, action, itemNamePart, cooldownSeconds * 1000L);
+                                                    CooldownTrigger trigger = new CooldownTrigger(name, type, action, itemNamePart, cooldownSeconds * 1000L, "#FFAA00");
                                                     munchyutils.client.CooldownManager.addTrigger(trigger);
                                                     MinecraftClient.getInstance().player.sendMessage(Text.literal("Added trigger: " + name), false);
                                                     return 1;
@@ -255,6 +255,19 @@ public class InfoHudCommand {
                             }
                         })
                     )
+                )
+                .then(ClientCommandManager.literal("help")
+                    .executes(ctx -> {
+                        MinecraftClient.getInstance().player.sendMessage(Text.literal("§a§lMunchyUtils Help"), false);
+                        MinecraftClient.getInstance().player.sendMessage(Text.literal("§e/mu config§7 - Open the config GUI"), false);
+                        MinecraftClient.getInstance().player.sendMessage(Text.literal("§e/mu reset§7 - Reset the current mining/fishing session"), false);
+                        MinecraftClient.getInstance().player.sendMessage(Text.literal("§e/mu summary§7 - Show current session statistics"), false);
+                        MinecraftClient.getInstance().player.sendMessage(Text.literal("§e/mu freethrift [item_tag]§7 - Look up info for the held item or a specific item"), false);
+                        MinecraftClient.getInstance().player.sendMessage(Text.literal("§e/mu cooldown trigger add/remove/list ...§7 - Manage custom cooldown triggers"), false);
+                        MinecraftClient.getInstance().player.sendMessage(Text.literal("§e/mu help§7 - Show this help message"), false);
+                        MinecraftClient.getInstance().player.sendMessage(Text.literal("§7Features: Mining/Fishing HUD, Cooldown HUD, Freethrift lookup, and more!"), false);
+                        return 1;
+                    })
                 )
             );
         });

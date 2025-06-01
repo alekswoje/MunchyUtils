@@ -25,16 +25,21 @@ public class InfoHudSession extends HudSessionBase {
     public void update(double newBalance) {
         long now = System.currentTimeMillis();
         if (!isActive) {
-            // Only start session if balance goes up
-            if (newBalance > startBalance) {
-                startTime = now;
+            // On first update after login, just set balances
+            if (currentBalance == 0 && startBalance == 0) {
                 startBalance = newBalance;
+                currentBalance = newBalance;
+                return;
+            }
+            // Only start session if balance goes up after initial login
+            if (currentBalance != 0 && newBalance > currentBalance) {
+                startTime = now;
+                startBalance = currentBalance;
                 isActive = true;
                 lastChangeTime = now;
                 currentBalance = newBalance;
             } else {
-                // Don't start session yet
-                startBalance = newBalance;
+                // Don't start session yet, just update currentBalance
                 currentBalance = newBalance;
             }
         } else if (newBalance != currentBalance) {
@@ -44,7 +49,7 @@ public class InfoHudSession extends HudSessionBase {
             if (getHourlyIncome() < 0) {
                 reset();
                 startTime = now;
-                startBalance = newBalance;
+                startBalance = currentBalance;
                 isActive = true;
                 lastChangeTime = now;
                 currentBalance = newBalance;
@@ -53,7 +58,10 @@ public class InfoHudSession extends HudSessionBase {
     }
 
     public boolean shouldTimeout() {
-        return isActive && (System.currentTimeMillis() - lastChangeTime > 2 * 60 * 1000);
+        MunchyConfig config = munchyutils.client.MunchyConfig.get();
+        if (!config.isMiningHudSessionTimeoutEnabled()) return false;
+        int timeout = config.getMiningHudSessionTimeoutMs();
+        return isActive && (System.currentTimeMillis() - lastChangeTime > timeout);
     }
 
     public String getHourlyIncomeString() {

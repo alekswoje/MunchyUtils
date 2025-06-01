@@ -222,8 +222,11 @@ public class FishingHudSession extends HudSessionBase {
     }
     public void tickTimeout() {
         if (!isActive) return;
+        MunchyConfig config = munchyutils.client.MunchyConfig.get();
+        if (!config.isFishingHudSessionTimeoutEnabled()) return;
+        int timeout = config.getFishingHudSessionTimeoutMs();
         long now = System.currentTimeMillis();
-        if (now - lastCatchTime > 210_000) { // 3m 30s
+        if (now - lastCatchTime > timeout) { // session reset
             // Reset session stats, but not playerLevel/playerXP
             startTime = 0;
             isActive = false;

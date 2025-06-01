@@ -4,48 +4,55 @@
     "type": "HELD",
     "action": "RCLICK",
     "itemNamePart": "Count Dooku Pickaxe",
-    "cooldownMs": 1500000
+    "cooldownMs": 1500000,
+    "color": "#FF5555"
   },
   {
     "name": "Scrubee Head",
     "type": "WORN",
     "action": "CROUCH",
     "itemNamePart": "Jedi Master Scrubee Head",
-    "cooldownMs": 4800000
+    "cooldownMs": 4800000,
+    "color": "#55FF55"
   },
   {
     "name": "Moloch's Scythe",
     "type": "HELD",
     "action": "RCLICK",
     "itemNamePart": "Moloch's Scythe",
-    "cooldownMs": 7200000
+    "cooldownMs": 7200000,
+    "color": "#5555FF"
   },
   {
     "name": "Yoda's Pickaxe",
     "type": "HELD",
     "action": "RCLICK",
     "itemNamePart": "YODA'S PICKAXE",
-    "cooldownMs": 1200000
+    "cooldownMs": 1200000,
+    "color": "#FFFF55"
   },
   {
     "name": "Zadkiel's Sacred Pickaxe",
     "type": "HELD",
     "action": "BREAK",
     "itemNamePart": "ZADKIEL'S SACRED PICKAXE",
-    "cooldownMs": 3600000
+    "cooldownMs": 3600000,
+    "color": "#FF55FF"
   },
   {
     "name": "Luga's Net",
     "type": "HELD",
     "action": "CROUCH",
     "itemNamePart": "Luga's Net",
-    "cooldownMs": 900000
+    "cooldownMs": 900000,
+    "color": "#55FFFF"
   },
   {
     "name": "Marie Curie's Brush",
     "type": "HELD",
     "action": "LCLICK",
     "itemNamePart": "MARIE CURIE'S BRUSH",
-    "cooldownMs": 3600000
+    "cooldownMs": 3600000,
+    "color": "#FFAA00"
   }
 ] 
