@@ -4,27 +4,33 @@
 
 ---
 
+## ⚙️ Requirements
+
+- Minecraft 1.21.5
+- Fabric Loader 0.16.12
+- [YetAnotherConfigLib (YACL)](https://modrinth.com/mod/yacl?version=1.21.5&loader=fabric) (**Required!** The game will crash if YACL is not installed)
+- (Optional) Mod Menu for easy config access
+
 ## 🛠️ How to Install
+
 1. Download the attached `.zip` file and extract the `.jar`.
-2. Place the `.jar` in your Minecraft `mods` folder.
-3. Launch Minecraft with Fabric Loader.
+2. Download and install [YetAnotherConfigLib (YACL)](https://modrinth.com/mod/yacl?version=1.21.5&loader=fabric) and place the `.jar` in your `mods` folder.
+3. Place the MunchyUtils `.jar` in your Minecraft `mods` folder.
+4. Launch Minecraft with Fabric Loader.
 
 ## 🌙 How to Add to Lunar Client
+
 1. Open Lunar Client and click the **Versions** button on the left (puzzle icon).
 2. Select **1.21**, then in the bottom right set the version to **1.21.5** and choose the **Lunar + Fabric** addon.
 3. Click the **Version Settings** button (to the left of 'Launch Game') and go to the **Mods** tab.
-4. Open the mods folder by clicking the folder icon at the top, then add the extracted `.jar` file into it.
+4. Open the mods folder by clicking the folder icon at the top, then add the extracted `.jar` file into it. Dont forget YACL (see above)
 5. Launch the game.
 
 ## ⚠️ Notes
+
 - This is a pre-release. Please report any bugs or issues on GitHub!
 - Only tested on MunchyMC Map 11, Minecraft 1.21.5, Fabric Loader 0.16.12.
 - For help or suggestions, open an issue or contact `alwoj` on Discord.
-
-## ⚙️ Requirements
-- Minecraft 1.21.5
-- Fabric Loader 0.16.12
-- (Optional) Mod Menu for easy config access
 
 ## Recent Changes
 
@@ -51,6 +57,7 @@ This mod uses [YetAnotherConfigLib (YACL)](https://modrinth.com/mod/yacl?version
 Open the config screen with `/mu config` or from Mod Menu. All features and HUDs are configurable here.
 
 ### Config Tabs
+
 - **General:** Update checker, chat suppression, HUD layout (Edit HUD Layout, Reset HUD Locations)
 - **Cooldown Triggers:** Manage custom cooldown triggers
 - **FishingHud:** Fishing HUD options
@@ -92,9 +99,11 @@ Open the config screen with `/mu config` or from Mod Menu. All features and HUDs
 - **Reset HUD Locations:** Use the button in the General tab to reset HUD positions and scales
 
 ### Update Checker
+
 - **Auto update check:** On startup, checks GitHub for new releases and warns if out of date. Can be disabled in the General tab of the config GUI.
 
 ### Chat Suppression
+
 - **Hide Inventory Full/Sell Success:** Suppress these messages via the General tab in the config GUI.
 
 ## Commands
