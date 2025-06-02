@@ -95,7 +95,7 @@ public class InfoHudSession extends HudSessionBase {
 
     public void activatePorgBuff() {
         porgBuffActive = true;
-        porgBuffExpireTime = System.currentTimeMillis() + 2 * 60 * 1000; // 2 minutes
+        porgBuffExpireTime = System.currentTimeMillis() + 125 * 1000; // 125 seconds
     }
     public boolean isPorgBuffActive() {
         return porgBuffActive && System.currentTimeMillis() < porgBuffExpireTime;

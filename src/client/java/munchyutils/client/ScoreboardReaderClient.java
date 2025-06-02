@@ -22,6 +22,8 @@ public class ScoreboardReaderClient {
     private static boolean registered = false;
     private static final Pattern BAL_PATTERN = Pattern.compile("Bal: \\$([\\d.,]+[KMB]?)");
 
+    private static double currentBalance = 0.0; // Add static field to store current balance
+
     public static void register() {
         if (registered) {
             return;
@@ -72,8 +74,14 @@ public class ScoreboardReaderClient {
             Matcher matcher = BAL_PATTERN.matcher(plainLine);
             if (matcher.find()) {
                 double balance = Utils.parseBalance(matcher.group(1));
+                currentBalance = balance; // Update the static currentBalance field
                 InfoHudOverlay.session.update(balance);
             }
         }
+    }
+
+    // Add a public static getter for the current balance
+    public static double getCurrentBalanceFromScoreboard() {
+        return currentBalance;
     }
 } 

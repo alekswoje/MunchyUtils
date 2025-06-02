@@ -27,4 +27,16 @@ public class RoastedPorgItemMixin {
             }
         }
     }
+
+    @Inject(method = "useOnBlock", at = @At("HEAD"), cancellable = true)
+    private void munchyutils$preventPorgUseOnBlock(net.minecraft.item.ItemUsageContext context, CallbackInfoReturnable<ActionResult> cir) {
+        ItemStack stack = context.getStack();
+        String name = Utils.stripColorCodes(stack.getName().getString()).toLowerCase();
+        if (name.contains("roasted porg")) {
+            MunchyConfig config = MunchyConfig.get();
+            if (config.isPreventPorgUseIfActive() && InfoHudOverlay.session.isPorgBuffActive()) {
+                cir.setReturnValue(ActionResult.FAIL);
+            }
+        }
+    }
 } 

@@ -463,6 +463,8 @@ public class MunchyUtilsClient implements ClientModInitializer {
 	public static void handleChatHudMessage(net.minecraft.text.Text message) {
 		String msg = message.getString();
 		MunchyConfig config = MunchyConfig.get();
+
+		// Handle message suppression
 		if (config.isHideInventoryFullMessage() && msg.contains("Your inventory is full! Click here to sell your items, or type /sell!")) {
 			// Suppress message: handled in mixin by not calling super/addMessage
 			return;
@@ -471,6 +473,41 @@ public class MunchyUtilsClient implements ClientModInitializer {
 			// Suppress message: handled in mixin by not calling super/addMessage
 			return;
 		}
+
+		// Handle mining income messages (sell messages)
+		java.util.regex.Matcher sellMatcher = java.util.regex.Pattern.compile("Successfully sold \\d+ items for \\$([\\d,]+).*", java.util.regex.Pattern.DOTALL).matcher(msg);
+		if (sellMatcher.find()) {
+			try {
+				double earned = Utils.parseBalance(sellMatcher.group(1));
+				// Since sell messages give the total earned, we need to get the current balance
+				// from the scoreboard (which should be updated shortly after the sell) and add the earned amount.
+				// A better approach would be to directly parse the new total balance from the chat or scoreboard.
+				// For now, we will rely on the scoreboard update to handle the total balance change,
+				// but this chat listener ensures that an update is triggered when a sell happens.
+				// We can potentially add a small delay here to wait for the scoreboard update
+				// or re-read the scoreboard immediately, but that might cause performance issues.
+				// Let's just call update with the *current* scoreboard balance for now,
+				// assuming the scoreboard update is fast enough.
+				// Alternatively, if the chat message *includes* the new total balance,
+				// we should parse that instead.
+
+				// *** IMPORTANT: We need a reliable way to get the *new total balance* after a sell. ***
+				// The current regex only captures the *amount earned* from the sell message.
+				// We need to find a chat message pattern that includes the player's total balance after earning.
+
+				// For now, let's just trigger a session update with the current known balance.
+				// This might not be perfectly accurate immediately after a sell,
+				// but it will ensure the session doesn't become completely stagnant if scoreboard updates are slow.
+				munchyutils.client.InfoHudOverlay.session.update(ScoreboardReaderClient.getCurrentBalanceFromScoreboard()); // Assuming ScoreboardReaderClient has a method to get current balance
+
+			} catch (NumberFormatException e) {
+				// Ignore if parsing fails
+			}
+		}
+
+		// Handle other potential income messages (if any) similarly...
+
+		// Pass through to fishing chat handler
 		handleFishingChatMessage(message);
 	}
 
@@ -490,7 +527,7 @@ public class MunchyUtilsClient implements ClientModInitializer {
 			}
 			client.execute(() -> {
 				client.player.sendMessage(
-					net.minecraft.text.Text.literal("§6[MunchyUtils] §cA new version is available: " + latest + " (You have: " + current + ")"),
+					net.minecraft.text.Text.literal("§6[MunchyUtils] §cA new version is available: " + latest + " (You have: " + current + "). Download it here: https://github.com/alekswoje/MunchyUtils"),
 					false
 				);
 			});
