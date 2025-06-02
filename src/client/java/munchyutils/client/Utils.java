@@ -8,7 +8,6 @@ import net.minecraft.item.Item;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import org.lwjgl.glfw.GLFW;
-import net.minecraft.item.PickaxeItem;
 
 public class Utils {
     // Color constants for overlays
@@ -25,10 +24,7 @@ public class Utils {
     }
 
     public static boolean isPickaxe(ItemStack stack) {
-        return stack.getItem() instanceof net.minecraft.item.PickaxeItem;
-    }
-
-    public static boolean isPickaxe(Item item) {
+        net.minecraft.item.Item item = stack.getItem();
         return item == Items.WOODEN_PICKAXE ||
                item == Items.STONE_PICKAXE ||
                item == Items.IRON_PICKAXE ||
