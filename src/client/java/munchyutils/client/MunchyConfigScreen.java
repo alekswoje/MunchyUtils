@@ -174,6 +174,18 @@ public class MunchyConfigScreen {
             .binding(config.getMiningHudSessionTimeoutMs(), config::getMiningHudSessionTimeoutMs, config::setMiningHudSessionTimeoutMs)
             .controller(opt -> IntegerSliderControllerBuilder.create(opt).range(1000, 600_000).step(1000))
             .build();
+        Option<Boolean> hideNearbyGroundItemsWhenMining = Option.createBuilder(Boolean.class)
+            .name(Text.literal("Hide Ground Items Near Player When Mining"))
+            .description(OptionDescription.of(Text.literal("Hide ground items (dropped items) within 1.5 blocks of you while mining.")))
+            .binding(config.isHideNearbyGroundItemsWhenMining(), config::isHideNearbyGroundItemsWhenMining, config::setHideNearbyGroundItemsWhenMining)
+            .controller(opt -> dev.isxander.yacl3.api.controller.BooleanControllerBuilder.create(opt))
+            .build();
+        Option<Float> nearbyGroundItemScale = Option.createBuilder(Float.class)
+            .name(Text.literal("Scale of Nearby Ground Items When Mining"))
+            .description(OptionDescription.of(Text.literal("Scale ground items within 1.5 blocks of you while mining. 1.0 = normal, 0.2 = 5x smaller. Only applies if hiding is disabled.")))
+            .binding(config.getNearbyGroundItemScale(), config::getNearbyGroundItemScale, config::setNearbyGroundItemScale)
+            .controller(opt -> FloatSliderControllerBuilder.create(opt).range(0.1f, 1.0f).step(0.05f))
+            .build();
         ConfigCategory miningHudCategory = ConfigCategory.createBuilder()
             .name(Text.literal("MiningHud"))
             .option(preventPorgUseIfActive)
@@ -181,6 +193,8 @@ public class MunchyConfigScreen {
             .option(miningHudAfkTimeoutMs)
             .option(miningHudSessionTimeoutEnabled)
             .option(miningHudSessionTimeoutMs)
+            .option(hideNearbyGroundItemsWhenMining)
+            .option(nearbyGroundItemScale)
             .build();
 
         // Build the config screen

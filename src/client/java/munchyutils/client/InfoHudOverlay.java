@@ -79,23 +79,38 @@ public class InfoHudOverlay extends BaseHudOverlay {
             y = Math.max(0, Math.min(y, winH - overlayHeight));
             
             // Tool detection logic FIRST
-            boolean hasPickaxe = false, hasFishingRod = false;
-            int pickaxeHotbarSlot = -1, fishingRodHotbarSlot = -1;
-            // Only check hotbar slots 0-8
+            boolean hasPickaxeInHotbar = false;
+            int pickaxeHotbarSlot = -1;
+            // Only check hotbar slots 0-8 for pickaxe
             for (int i = 0; i < 9; i++) {
                 ItemStack stack = client.player.getInventory().getStack(i);
                 if (stack.isEmpty()) continue;
                 if (Utils.isPickaxe(stack)) {
-                    hasPickaxe = true;
+                    hasPickaxeInHotbar = true;
                     if (pickaxeHotbarSlot == -1) pickaxeHotbarSlot = i;
                 }
+            }
+
+            boolean hasFishingRodInHotbar = false;
+            int fishingRodHotbarSlot = -1;
+            // Only check hotbar slots 0-8 for fishing rod
+            for (int i = 0; i < 9; i++) {
+                ItemStack stack = client.player.getInventory().getStack(i);
+                if (stack.isEmpty()) continue;
                 if (stack.getItem() == Items.FISHING_ROD) {
-                    hasFishingRod = true;
+                    hasFishingRodInHotbar = true;
                     if (fishingRodHotbarSlot == -1) fishingRodHotbarSlot = i;
                 }
             }
-            boolean showMining = false, showFishing = false;
-            if (hasPickaxe && hasFishingRod) {
+
+            boolean hasJabbaTheHuttsBellyInInventory = Utils.hasJabbaTheHuttsBelly(client.player.getInventory());
+
+            boolean showMining = false;
+            boolean showFishing = false;
+
+            // Determine which HUD to show
+            if (hasPickaxeInHotbar && hasFishingRodInHotbar) {
+                // If both are in hotbar, prioritize based on slot
                 if (pickaxeHotbarSlot != -1 && fishingRodHotbarSlot != -1) {
                     showMining = pickaxeHotbarSlot <= fishingRodHotbarSlot;
                     showFishing = !showMining;
@@ -104,13 +119,19 @@ public class InfoHudOverlay extends BaseHudOverlay {
                 } else if (fishingRodHotbarSlot != -1) {
                     showFishing = true;
                 } else {
+                    // Fallback if somehow slots are -1 but hasItem is true
                     showMining = true;
                 }
-            } else if (hasPickaxe) {
+            } else if (hasPickaxeInHotbar) {
                 showMining = true;
-            } else if (hasFishingRod) {
+            } else if (hasFishingRodInHotbar) {
                 showFishing = true;
+            } else if (hasJabbaTheHuttsBellyInInventory) {
+                // Show mining if Jabba's Belly is in inventory and no pickaxe/fishing rod in hotbar
+                showMining = true;
             }
+
+            // If neither mining nor fishing HUD should be shown, return early
             if (!showMining && !showFishing) {
                 return;
             }

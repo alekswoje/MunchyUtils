@@ -34,6 +34,8 @@ public class MunchyConfig {
     public boolean fishingHudSessionTimeoutEnabled = true;
     public int fishingHudSessionTimeoutMs = 210_000;
     public boolean trackPlayerLogout = false;
+    public boolean hideNearbyGroundItemsWhenMining = false;
+    public float nearbyGroundItemScale = 1.0f; // 1.0 = normal, <1.0 = smaller
 
     private transient Consumer<MunchyConfig> onChange;
 
@@ -123,4 +125,8 @@ public class MunchyConfig {
     public void setFishingHudSessionTimeoutMs(int v) { this.fishingHudSessionTimeoutMs = v; notifyChange(); save(); }
     public boolean isTrackPlayerLogout() { return trackPlayerLogout; }
     public void setTrackPlayerLogout(boolean v) { this.trackPlayerLogout = v; notifyChange(); save(); }
+    public boolean isHideNearbyGroundItemsWhenMining() { return hideNearbyGroundItemsWhenMining; }
+    public void setHideNearbyGroundItemsWhenMining(boolean v) { this.hideNearbyGroundItemsWhenMining = v; notifyChange(); save(); }
+    public float getNearbyGroundItemScale() { return nearbyGroundItemScale; }
+    public void setNearbyGroundItemScale(float v) { this.nearbyGroundItemScale = v; notifyChange(); save(); }
 } 

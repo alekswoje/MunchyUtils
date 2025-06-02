@@ -106,6 +106,8 @@ Open the config screen with `/mu config` or from Mod Menu. All features and HUDs
 
 - **Hide Inventory Full/Sell Success:** Suppress these messages via the General tab in the config GUI.
 
+- **Hide Nearby Ground Items:** Hide dropped items within 1.5 blocks of you while mining to reduce visual clutter (configurable).
+
 ## Commands
 
 ### Cooldown Management (moving to gui soon)

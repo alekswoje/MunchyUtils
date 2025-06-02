@@ -5,6 +5,10 @@ import net.minecraft.item.Items;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.item.Item;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
+import org.lwjgl.glfw.GLFW;
+import net.minecraft.item.PickaxeItem;
 
 public class Utils {
     // Color constants for overlays
@@ -21,12 +25,7 @@ public class Utils {
     }
 
     public static boolean isPickaxe(ItemStack stack) {
-        return stack.getItem() == Items.WOODEN_PICKAXE ||
-               stack.getItem() == Items.STONE_PICKAXE ||
-               stack.getItem() == Items.IRON_PICKAXE ||
-               stack.getItem() == Items.GOLDEN_PICKAXE ||
-               stack.getItem() == Items.DIAMOND_PICKAXE ||
-               stack.getItem() == Items.NETHERITE_PICKAXE;
+        return stack.getItem() instanceof net.minecraft.item.PickaxeItem;
     }
 
     public static boolean isPickaxe(Item item) {
@@ -99,5 +98,25 @@ public class Utils {
         } catch (NumberFormatException e) {
             return 0.0;
         }
+    }
+
+    public static boolean isPlayerMining(MinecraftClient client) {
+        if (client == null || client.player == null) return false;
+        ItemStack mainHand = client.player.getMainHandStack();
+        boolean isPickaxe = isPickaxe(mainHand);
+        long window = client.getWindow().getHandle();
+        boolean leftClick = org.lwjgl.glfw.GLFW.glfwGetMouseButton(window, org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_1) == org.lwjgl.glfw.GLFW.GLFW_PRESS;
+        return isPickaxe && leftClick;
+    }
+
+    // New method to check for "JABBA THE HUTT'S BELLY" in inventory
+    public static boolean hasJabbaTheHuttsBelly(net.minecraft.entity.player.PlayerInventory inventory) {
+        for (int i = 0; i < inventory.size(); i++) {
+            net.minecraft.item.ItemStack stack = inventory.getStack(i);
+            if (!stack.isEmpty() && stack.getName().getString().equals("JABBA THE HUTT'S BELLY")) {
+                return true;
+            }
+        }
+        return false;
     }
 } 
